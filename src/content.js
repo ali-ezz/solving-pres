@@ -60,8 +60,8 @@ export const stations = [
     title: 'Cyber security',
     sub: 'Protecting devices, networks and data from being stolen, damaged or misused.',
     items: [
-      { step: true, h: 'One engine runs most of the web.', p: 'Chrome, Edge, Brave, Opera, Vivaldi, Samsung Internet — all built on <b>Chromium</b>, Google’s open-source browser engine.' },
-      { step: true, h: 'One weakness, billions of users.', p: 'A flaw in Chromium is a flaw in almost every browser you know.' },
+      { step: true, h: 'One engine runs most of the web.', p: 'Chrome, Edge, Brave, Opera, Vivaldi, Samsung Internet — all built on <b>Chromium</b>, Google’s open-source browser project.' },
+      { step: true, h: 'One weakness, billions of users.', p: 'A flaw in Chromium is a flaw in most browsers people use.' },
     ],
     notes:
       'Chromium = the open-source project that Chrome and most other browsers are built on. So the browser is the front door for almost everyone.',
@@ -87,7 +87,7 @@ export const stations = [
     kicker: '02 · Gather the facts',
     title: 'The usual answers<br>miss the browser.',
     items: [
-      { step: true, h: 'Antivirus', p: 'Scans files on your disk. Trackers and fingerprinting scripts never touch the disk.' },
+      { step: true, h: 'Antivirus', p: 'Built to catch malicious files and programs. Trackers are ordinary web scripts running inside the page.' },
       { step: true, h: 'VPN', p: 'Hides your IP from websites — but your fingerprint stays the same, and WebRTC can leak the real IP.' },
       { step: true, h: 'Incognito', p: 'Forgets your history on this device. Websites still see the same fingerprint.' },
     ],
@@ -149,7 +149,7 @@ export const stations = [
     items: [
       { h: 'Fingerprint ID', p: 'Changes on every reload — the tracker can’t recognise you.' },
       { h: 'WebRTC IP', p: 'Blocked — your real address stays hidden.' },
-      { h: 'Cookies', p: 'Out of reach for untrusted scripts.' },
+      { h: 'Canvas fingerprint', p: 'Randomised — every read returns a different hash.' },
     ],
     notes:
       'Switch to Chrome. Run the test with Heros OFF, then ON. Reload twice to show the ID changing.',
