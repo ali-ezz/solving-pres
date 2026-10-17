@@ -11,6 +11,7 @@ import { createWorld } from './world.js';
 import { createStations } from './stations3d.js';
 import { panelBuilders } from './panels.js';
 import * as sfx from './audio.js';
+import { viewport } from './viewport.js';
 
 const { stations: data, config } = content;
 // keep animations on real time even if a frame stutters
@@ -208,13 +209,13 @@ window.addEventListener('pointerdown', (e) => {
   if (e.button !== 0) return;
   if (e.target.closest('.interactive, a, button')) return;
   if (!started) return start();
-  if (e.clientX > window.innerWidth / 2) next();
+  if (e.clientX > viewport.w / 2) next();
   else prev();
 });
 
 // edge hints follow the cursor
 window.addEventListener('pointermove', (e) => {
-  const x = e.clientX / window.innerWidth;
+  const x = e.clientX / viewport.w;
   document.body.classList.toggle('hint-right', x > 0.88);
   document.body.classList.toggle('hint-left', x < 0.12);
 });

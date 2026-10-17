@@ -374,10 +374,10 @@ function chromium(i) {
 // ── 5 · threats attacking a browser ─────────────────────────
 function threats(i) {
   return station(i, (s, g) => {
-    const win = browserWindow(8, 5.2, COLORS.safe);
+    const win = browserWindow(7, 4.6, COLORS.safe);
     g.add(win);
     const spots = [
-      [-6.6, 4.3], [6.6, 4.3], [-6.6, -3.9], [6.6, -3.9],
+      [-5.7, 4.2], [5.7, 4.2], [-5.7, -3.8], [5.7, -3.8],
     ];
     const names = ['Tracker', 'Fingerprint', 'Cookie theft', 'WebRTC leak'];
     const items = spots.map(([x, y], k) => {
@@ -393,7 +393,7 @@ function threats(i) {
       const st = stream({
         count: 26, color: COLORS.threat, size: 0.32, speed: 0.55, curve: 0.8,
         from: () => new THREE.Vector3(x, y, 1),
-        to: () => new THREE.Vector3(rand(-3.4, 3.4), rand(-2, 1.8), 0.2),
+        to: () => new THREE.Vector3(rand(-3, 3), rand(-1.8, 1.6), 0.2),
       });
       g.add(st);
       return { node, m, st, label: l };

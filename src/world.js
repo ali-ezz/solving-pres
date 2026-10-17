@@ -6,6 +6,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import gsap from 'gsap';
+import { viewport, onViewportResize } from './viewport.js';
 
 export const COLORS = {
   bg: 0x04060c,
@@ -22,8 +23,8 @@ export const COLORS = {
 // left 7vw, width min(640px, 40vw).
 function frameOffset(frame) {
   if (frame !== 'left') return 0;
-  const w = window.innerWidth;
-  const aspect = w / window.innerHeight;
+  const w = viewport.w;
+  const aspect = w / viewport.h;
   const textRight = (0.07 * w + Math.min(640, 0.4 * w)) / w;
   const target = (textRight + 1) / 2; // middle of the free area, 0..1
   // the visible film width is filmGauge (35mm) * 2*tan(fov/2) * aspect, fov 45°
@@ -33,21 +34,21 @@ function frameOffset(frame) {
 export function createWorld(canvas, labelHost) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setSize(viewport.w, viewport.h);
   renderer.setClearColor(COLORS.bg, 1);
 
   const labels = new CSS2DRenderer({ element: labelHost });
-  labels.setSize(window.innerWidth, window.innerHeight);
+  labels.setSize(viewport.w, viewport.h);
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.FogExp2(COLORS.bg, 0.012);
 
-  const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1200);
+  const camera = new THREE.PerspectiveCamera(45, viewport.w / viewport.h, 0.1, 1200);
   camera.position.set(0, 2, 30);
 
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.95, 0.55, 0.12);
+  const bloom = new UnrealBloomPass(new THREE.Vector2(viewport.w, viewport.h), 0.95, 0.55, 0.12);
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
 
@@ -70,8 +71,8 @@ export function createWorld(canvas, labelHost) {
   };
   const mouse = { x: 0, y: 0, sx: 0, sy: 0 };
   window.addEventListener('pointermove', (e) => {
-    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = (e.clientY / window.innerHeight) * 2 - 1;
+    mouse.x = (e.clientX / viewport.w) * 2 - 1;
+    mouse.y = (e.clientY / viewport.h) * 2 - 1;
   });
 
   let flight = null;
@@ -109,8 +110,7 @@ export function createWorld(canvas, labelHost) {
   }
 
   function resize() {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
+    const { w, h } = viewport;
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     renderer.setSize(w, h);
@@ -118,7 +118,7 @@ export function createWorld(canvas, labelHost) {
     labels.setSize(w, h);
     if (!flight || !flight.isActive()) rig.film = frameOffset(rig.frame);
   }
-  window.addEventListener('resize', resize);
+  onViewportResize(resize);
 
   const updaters = new Set();
   const timer = new THREE.Timer();
