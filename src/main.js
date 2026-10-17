@@ -18,6 +18,37 @@ const { stations: data, config } = content;
 gsap.ticker.lagSmoothing(0);
 document.title = `${config.title} — ${config.course}`;
 
+// start screen
+document.querySelector('.start-kicker').textContent = config.topic;
+document.querySelector('.start-title').textContent = config.title;
+document.querySelector('.start-names').textContent = config.presenters.join('  ·  ');
+
+// Wrap every word of a title in two spans so it can rise into place.
+// Titles are plain text with optional <br> line breaks.
+const splitWords = (html) =>
+  html
+    .split(/<br\s*\/?>/i)
+    .map((line) => line.trim().split(/\s+/).map((w) => `<span class="w"><span class="wi">${w}</span></span>`).join(' '))
+    .join('<br>');
+
+// Decode a line of text from random glyphs, left to right.
+const GLYPHS = '█▓▒░<>/\\|_-=+*#01';
+function scramble(el, text, { duration = 0.9, delay = 0 } = {}) {
+  const state = { p: 0 };
+  return gsap.to(state, {
+    p: 1, duration, delay, ease: 'none',
+    onUpdate: () => {
+      const n = Math.floor(state.p * text.length);
+      let out = text.slice(0, n);
+      for (let k = n; k < text.length; k++) {
+        out += text[k] === ' ' ? ' ' : GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
+      }
+      el.textContent = out;
+    },
+    onComplete: () => (el.textContent = text),
+  });
+}
+
 const world = createWorld(document.getElementById('world'), document.getElementById('labels'));
 const stations = createStations(world, content);
 const ui = document.getElementById('ui');
@@ -31,7 +62,7 @@ const panels = data.map((d, i) => {
     .join('');
   el.innerHTML = `
     <div class="kicker">${d.kicker || ''}</div>
-    <h1 class="title">${d.title}</h1>
+    <h1 class="title">${splitWords(d.title)}</h1>
     ${d.sub ? `<p class="sub">${d.sub}</p>` : ''}
     ${items ? `<ul class="items">${items}</ul>` : ''}
     <div class="extra"></div>
@@ -76,13 +107,23 @@ let busy = false;
 let started = false;
 
 function showPanel(i, delay) {
-  const { el } = panels[i];
+  const { el, data: d } = panels[i];
   el.classList.add('active');
-  const parts = el.querySelectorAll('.kicker, .title, .sub, .items, .extra, .footnote');
-  gsap.fromTo(parts,
-    { opacity: 0, y: 34, filter: 'blur(10px)' },
+  const kicker = el.querySelector('.kicker');
+  const title = el.querySelector('.title');
+  const words = title.querySelectorAll('.wi');
+  const rest = el.querySelectorAll('.sub, .items, .extra, .footnote');
+
+  gsap.set(title, { opacity: 1 });
+  gsap.fromTo(kicker, { opacity: 0 }, { opacity: 1, duration: 0.3, delay });
+  scramble(kicker, d.kicker || '', { duration: 0.8, delay });
+  gsap.fromTo(words,
+    { yPercent: 110, rotateX: -70, opacity: 0 },
+    { yPercent: 0, rotateX: 0, opacity: 1, duration: 0.9, delay: delay + 0.1, stagger: 0.06, ease: 'power4.out' });
+  gsap.fromTo(rest,
+    { opacity: 0, y: 30, filter: 'blur(10px)' },
     {
-      opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.9, delay, stagger: 0.09, ease: 'power3.out',
+      opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.9, delay: delay + 0.35, stagger: 0.1, ease: 'power3.out',
       // a leftover transform would make each part a positioning context
       clearProps: 'transform,filter',
     });
@@ -90,8 +131,10 @@ function showPanel(i, delay) {
 
 function hidePanel(i) {
   const { el } = panels[i];
-  const parts = el.querySelectorAll('.kicker, .title, .sub, .items, .extra, .footnote');
-  gsap.to(parts, {
+  const words = el.querySelectorAll('.title .wi');
+  const rest = el.querySelectorAll('.kicker, .sub, .items, .extra, .footnote');
+  gsap.to(words, { yPercent: -110, opacity: 0, duration: 0.35, stagger: 0.02, ease: 'power2.in' });
+  gsap.to(rest, {
     opacity: 0, y: -20, filter: 'blur(8px)', duration: 0.35, stagger: 0.03, ease: 'power2.in',
     onComplete: () => el.classList.remove('active'),
   });
@@ -116,10 +159,10 @@ async function go(i, { full = false, instant = false } = {}) {
   updateHud();
   history.replaceState(null, '', `#${i + 1}`);
 
-  const flight = world.flyTo(st.cam, { instant, duration: prev < 0 ? 2.6 : 1.9 });
-  if (!instant) sfx.whoosh(prev < 0 ? 2.4 : 1.7);
-  showPanel(i, instant ? 0 : prev < 0 ? 1.6 : 1.15);
-  setTimeout(() => st.showLabels(true), instant ? 0 : 1200);
+  const flight = world.flyTo(st.cam, { instant, duration: prev < 0 ? 2.6 : 1.6 });
+  if (!instant) sfx.whoosh(prev < 0 ? 2.4 : 1.5);
+  showPanel(i, instant ? 0 : prev < 0 ? 1.6 : 0.95);
+  setTimeout(() => st.showLabels(true), instant ? 0 : 1000);
   p.ctl.onEnter?.();
   if (full) p.ctl.revealAll();
   await flight;

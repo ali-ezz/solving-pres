@@ -202,63 +202,245 @@ function intro(i) {
   });
 }
 
-// ── 2 · fingerprint ─────────────────────────────────────────
+// A procedural fingertip: concentric, gently wobbling ridges.
+function makeFingerprint({ color = COLORS.safe, ridges = 26, spacing = 0.19, seed = 0 } = {}) {
+  const group = new THREE.Group();
+  const lines = [];
+  for (let r = 0; r < ridges; r++) {
+    const base = 0.3 + r * spacing;
+    const pts = [];
+    const gap = rand(0.2, 0.8);
+    const start = rand(0, Math.PI * 2);
+    const N = 180;
+    for (let k = 0; k <= N; k++) {
+      const th = start + (k / N) * (Math.PI * 2 - gap);
+      // gentle, low-frequency wobble keeps ridges roughly parallel
+      const rr = base * (1 + 0.025 * Math.sin(3 * th + r * 0.4 + seed) + 0.012 * Math.sin(7 * th - r * 0.3));
+      // oval fingertip: narrower sides, taller top, centre pushed down a bit
+      const y = rr * Math.sin(th) * 1.12 - (1 - r / ridges) * 0.5 * (spacing / 0.19);
+      pts.push(new THREE.Vector3(rr * 0.8 * Math.cos(th), y, 0));
+    }
+    const geo = new THREE.BufferGeometry().setFromPoints(pts);
+    const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.55 + (1 - r / ridges) * 0.45 });
+    const line = new THREE.Line(geo, mat);
+    line.userData.n = pts.length;
+    lines.push(line);
+    group.add(line);
+  }
+  return {
+    group,
+    lines,
+    // draw the ridges in, innermost first
+    draw(delay = 0.3) {
+      lines.forEach((l, k) => {
+        const p = { n: 0 };
+        l.geometry.setDrawRange(0, 0);
+        gsap.to(p, {
+          n: l.userData.n, duration: 1.6, delay: delay + k * 0.035, ease: 'power2.out',
+          onUpdate: () => l.geometry.setDrawRange(0, Math.floor(p.n)),
+        });
+      });
+    },
+  };
+}
+
+// ── fingerprint: this laptop's ID ───────────────────────────
 function fingerprint(i) {
   return station(i, (s, g) => {
-    const fp = new THREE.Group();
-    g.add(fp);
-    const lines = [];
-    const RIDGES = 26;
-    for (let r = 0; r < RIDGES; r++) {
-      const base = 0.3 + r * 0.19;
-      const pts = [];
-      const gap = rand(0.2, 0.8);
-      const start = rand(0, Math.PI * 2);
-      const N = 180;
-      for (let k = 0; k <= N; k++) {
-        const th = start + (k / N) * (Math.PI * 2 - gap);
-        // gentle, low-frequency wobble keeps ridges roughly parallel
-        const rr = base * (1 + 0.025 * Math.sin(3 * th + r * 0.4) + 0.012 * Math.sin(7 * th - r * 0.3));
-        // oval fingertip: narrower sides, taller top, centre pushed down a bit
-        const y = rr * Math.sin(th) * 1.12 - (1 - r / RIDGES) * 0.5;
-        pts.push(new THREE.Vector3(rr * 0.8 * Math.cos(th), y, 0));
-      }
-      const geo = new THREE.BufferGeometry().setFromPoints(pts);
-      geo.setDrawRange(0, 0);
-      const mat = new THREE.LineBasicMaterial({ color: COLORS.safe, transparent: true, opacity: 0.55 + (1 - r / RIDGES) * 0.45 });
-      const line = new THREE.Line(geo, mat);
-      line.userData.n = pts.length;
-      lines.push(line);
-      fp.add(line);
-    }
+    const fp = makeFingerprint();
+    g.add(fp.group);
     const scan = new THREE.Mesh(new THREE.PlaneGeometry(7.4, 0.07), basic(COLORS.safe, 0.9));
     g.add(scan);
     const halo = new THREE.Mesh(new THREE.RingGeometry(6.2, 6.26, 128), basic(COLORS.safe, 0.35));
     g.add(halo);
 
     const idLabel = s.addLabel(label('<span class="mono">ID ····-····</span>', 'big'));
-    idLabel.position.set(0, -6.9, 0);
+    idLabel.position.set(0, 7, 0);
     g.add(idLabel);
     s.setId = (id) => {
       idLabel.element.innerHTML = `<span class="mono">ID ${id}</span>`;
     };
 
-    s.enter = () => {
-      lines.forEach((l, k) => {
-        const p = { n: 0 };
-        l.geometry.setDrawRange(0, 0);
-        gsap.to(p, {
-          n: l.userData.n, duration: 1.6, delay: 0.3 + k * 0.035, ease: 'power2.out',
-          onUpdate: () => l.geometry.setDrawRange(0, Math.floor(p.n)),
-        });
-      });
-    };
+    s.enter = () => fp.draw();
     s.update = (t) => {
-      fp.rotation.y = Math.sin(t * 0.5) * 0.35;
-      fp.rotation.x = Math.sin(t * 0.37) * 0.12;
+      fp.group.rotation.y = Math.sin(t * 0.5) * 0.35;
+      fp.group.rotation.x = Math.sin(t * 0.37) * 0.12;
       scan.position.set(0, Math.sin(t * 1.3) * 5.4, 0.3);
       scan.material.opacity = 0.35 + 0.35 * Math.cos(t * 2.6);
       halo.rotation.z = t * 0.1;
+    };
+  });
+}
+
+// ── society: a city that lives online ───────────────────────
+function society(i) {
+  return station(i, (s, g) => {
+    const city = new THREE.Group();
+    city.position.y = -5.2;
+    g.add(city);
+    const buildings = [];
+    const edgeMat = () => new THREE.LineBasicMaterial({ color: COLORS.dim, transparent: true, opacity: 0.9 });
+    for (let x = -4; x <= 4; x++) {
+      for (let z = -2; z <= 1; z++) {
+        if (Math.abs(x) + Math.abs(z) > 5 || rand(0, 1) < 0.15) continue;
+        const h = rand(1.6, 6.5) * (1 - Math.abs(x) * 0.07);
+        // origin at the base so buildings grow up out of the ground
+        const geo = new THREE.BoxGeometry(1.3, h, 1.3).translate(0, h / 2, 0);
+        const b = new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat());
+        b.position.set(x * 1.9, 0, z * 1.9);
+        // lit windows
+        const win = new THREE.Mesh(new THREE.PlaneGeometry(0.9, h * 0.8), basic(COLORS.safe, 0.0));
+        win.position.set(0, h / 2, 0.66);
+        b.add(win);
+        b.userData = { h, win, x, z };
+        city.add(b);
+        buildings.push(b);
+      }
+    }
+    // roof of a building in station space
+    const roof = (b) => b.position.clone().add(city.position).add(new THREE.Vector3(0, b.userData.h, 0));
+    // data arcs between buildings
+    const arcs = stream({
+      count: 50, color: COLORS.safe, size: 0.28, speed: 0.45, curve: 3,
+      from: () => roof(buildings[Math.floor(rand(0, buildings.length))]),
+      to: () => roof(buildings[Math.floor(rand(0, buildings.length))]),
+    });
+    g.add(arcs);
+
+    // the two real incidents: which buildings turn red
+    const pick = (fx, fz) => buildings.reduce((best, b) =>
+      (Math.hypot(b.userData.x - fx, b.userData.z - fz) < Math.hypot(best.userData.x - fx, best.userData.z - fz) ? b : best));
+    const hospital = pick(-2, 0);
+    const company = pick(2.5, 0);
+    const markers = [
+      [hospital, 'Hospitals · NHS'],
+      [company, '147M records'],
+    ].map(([b, text]) => {
+      const l = s.addLabel(label(text, 'threat big hidden'));
+      l.position.copy(roof(b)).add(new THREE.Vector3(0, 1, 0));
+      g.add(l);
+      const leak = stream({
+        count: 18, color: COLORS.threat, size: 0.32, speed: 0.4,
+        from: () => roof(b).add(new THREE.Vector3(rand(-0.4, 0.4), 0, 0)),
+        to: () => roof(b).add(new THREE.Vector3(rand(-2, 2), rand(4, 7), rand(-1, 1))),
+      });
+      g.add(leak);
+      return { b, l, leak };
+    });
+
+    const light = (b, color, opacity) => {
+      const c = new THREE.Color(color);
+      gsap.to(b.material.color, { r: c.r, g: c.g, b: c.b, duration: 0.6 });
+      gsap.to(b.userData.win.material.color, { r: c.r, g: c.g, b: c.b, duration: 0.6 });
+      gsap.to(b.userData.win.material, { opacity, duration: 0.6 });
+    };
+
+    s.enter = () => {
+      arcs.material.opacity = 0;
+      buildings.forEach((b) => {
+        b.material.color.set(COLORS.dim);
+        b.userData.win.material.opacity = 0;
+        b.scale.y = 0.001;
+        gsap.to(b.scale, { y: 1, duration: 1.2, delay: 0.4 + rand(0, 0.6), ease: 'power3.out' });
+      });
+      markers.forEach((m) => {
+        m.l.element.classList.add('hidden');
+        m.leak.material.opacity = 0;
+      });
+    };
+    s.step = (k) => {
+      if (k === 0) {
+        sfx.blip(660);
+        buildings.forEach((b, n) => setTimeout(() => light(b, COLORS.safe, 0.05), n * 25));
+        fade(arcs.material, 0.9, 0.8, 0.4);
+      } else if (markers[k - 1]) {
+        const m = markers[k - 1];
+        sfx.alarm();
+        light(m.b, COLORS.threat, 0.2);
+        m.l.element.classList.remove('hidden');
+        fade(m.leak.material, 0.95, 0.6, 0.2);
+      }
+    };
+    s.update = (t, dt) => {
+      arcs.userData.update(dt);
+      markers.forEach((m) => m.leak.userData.update(dt));
+      // sway the whole scene so labels and particles stay attached to their buildings
+      g.rotation.y = Math.sin(t * 0.15) * 0.12 - 0.1;
+    };
+  }, { camOffset: new THREE.Vector3(0, 2.5, 22), lookOffset: new THREE.Vector3(0, -0.5, 0) });
+}
+
+// ── results: unique vs randomized fingerprint ───────────────
+function results(i) {
+  return station(i, (s, g) => {
+    const make = (x, color) => {
+      const fp = makeFingerprint({ color, ridges: 18, spacing: 0.17 });
+      fp.group.position.set(x, 1.5, -6);
+      fp.group.scale.setScalar(1.15);
+      g.add(fp.group);
+      return fp;
+    };
+    const unique = make(-11, COLORS.threat);
+    const random = make(11, COLORS.safe);
+    let jitterT = 0;
+    s.enter = () => {
+      unique.draw(0.6);
+      random.draw(0.9);
+    };
+    s.update = (t, dt) => {
+      unique.group.rotation.y = Math.sin(t * 0.4) * 0.25;
+      // the randomized one never holds still: ridges re-shuffle every beat
+      jitterT += dt;
+      if (jitterT > 0.45) {
+        jitterT = 0;
+        random.lines.forEach((l) => {
+          l.rotation.z = rand(-0.3, 0.3);
+          l.scale.setScalar(rand(0.92, 1.08));
+        });
+      }
+      random.group.rotation.y = Math.sin(t * 0.4 + 1) * 0.25;
+    };
+  });
+}
+
+// ── takeaways: four habits light up ─────────────────────────
+function takeaways(i) {
+  return station(i, (s, g) => {
+    const tiles = [0, 1, 2, 3].map((k) => {
+      const t = new THREE.Group();
+      t.position.set((k % 2 ? 2.6 : -2.6), (k < 2 ? 2.6 : -2.6), 0);
+      const hex = new THREE.Mesh(new THREE.CircleGeometry(2.2, 6), basic(COLORS.threat, 0.08, { side: THREE.DoubleSide }));
+      const edge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.CircleGeometry(2.2, 6)), new THREE.LineBasicMaterial({ color: COLORS.threat, transparent: true, opacity: 0.8 }));
+      // check mark
+      const check = new THREE.Mesh(
+        new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(-0.8, 0, 0.05), new THREE.Vector3(-0.2, -0.6, 0.05), new THREE.Vector3(0.9, 0.7, 0.05)], false, 'catmullrom', 0), 24, 0.09, 8),
+        basic(COLORS.safe, 0),
+      );
+      hex.rotation.z = edge.rotation.z = Math.PI / 6;
+      t.add(hex, edge, check);
+      t.userData = { hex, edge, check, on: false };
+      g.add(t);
+      return t;
+    });
+    const set = (t, on, quick) => {
+      const c = new THREE.Color(on ? COLORS.safe : COLORS.threat);
+      const d = quick ? 0 : 0.5;
+      gsap.to(t.userData.edge.material.color, { r: c.r, g: c.g, b: c.b, duration: d });
+      gsap.to(t.userData.hex.material.color, { r: c.r, g: c.g, b: c.b, duration: d });
+      gsap.to(t.userData.hex.material, { opacity: on ? 0.16 : 0.08, duration: d });
+      gsap.to(t.userData.check.material, { opacity: on ? 1 : 0, duration: d, delay: on && !quick ? 0.35 : 0 });
+      if (on && !quick) gsap.fromTo(t.rotation, { y: 0 }, { y: Math.PI * 2, duration: 0.9, ease: 'power3.inOut' });
+      t.userData.on = on;
+    };
+    s.enter = () => tiles.forEach((t) => set(t, false, true));
+    s.step = (k) => {
+      if (!tiles[k]) return;
+      sfx.click(true);
+      set(tiles[k], true);
+    };
+    s.update = (t) => {
+      tiles.forEach((tile, k) => (tile.position.z = Math.sin(t * 0.9 + k) * 0.3));
+      g.rotation.y = Math.sin(t * 0.3) * 0.15;
     };
   });
 }
@@ -842,10 +1024,10 @@ function hub(i, hubContent) {
 function demo(i) {
   return station(i, (s, g) => {
     const a = browserWindow(6, 4, COLORS.threat);
-    a.position.set(-12, 0, -2);
+    a.position.set(-14, 0, -3);
     a.rotation.y = 0.35;
     const b = browserWindow(6, 4, COLORS.safe);
-    b.position.set(12, 0, -2);
+    b.position.set(14, 0, -3);
     b.rotation.y = -0.35;
     const ring = new THREE.Mesh(new THREE.TorusGeometry(4.2, 0.06, 8, 120), basic(COLORS.safe, 0.8));
     ring.position.copy(b.position);
@@ -853,8 +1035,8 @@ function demo(i) {
     g.add(a, b, ring);
     const leak = stream({
       count: 30, color: COLORS.threat, size: 0.34, speed: 0.4,
-      from: () => new THREE.Vector3(-12 + rand(-2, 2), rand(-1, 1), -2),
-      to: () => new THREE.Vector3(-12 + rand(-6, 6), rand(6, 10), rand(-6, -2)),
+      from: () => new THREE.Vector3(-14 + rand(-2, 2), rand(-1, 1), -3),
+      to: () => new THREE.Vector3(-14 + rand(-6, 6), rand(6, 10), rand(-7, -3)),
     });
     g.add(leak);
     s.enter = () => {
@@ -930,8 +1112,8 @@ function road(list) {
 
 export function createStations(world, content) {
   const builders = {
-    intro, fingerprint, audience, chromium, threats, gaps,
-    matrix: matrixBackdrop, heros, local,
+    intro, society, fingerprint, audience, chromium, threats, gaps,
+    matrix: matrixBackdrop, results, heros, local, takeaways,
     hub: (k) => hub(k, content.hub),
     demo,
     outro,

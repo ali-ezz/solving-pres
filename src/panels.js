@@ -201,7 +201,63 @@ function demoPanel(host, st, { config }) {
   return {};
 }
 
+// ── "We tested it": two measured results side by side ─────
+function resultsPanel(host, st, { results }) {
+  const wrap = h('div', 'results');
+  wrap.innerHTML = `
+    <div class="result-cards">${results.runs
+      .map((r) => `
+        <article class="result ${r.tone}">
+          <header>${r.name}</header>
+          <div class="verdict-line">${r.verdict}</div>
+          <div class="bits"><b class="mono" data-bits="${r.bits}">0.00</b><span>bits of identifying information</span></div>
+          <dl>${r.rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
+        </article>`)
+      .join('')}</div>
+    <p class="lesson">${results.lesson}</p>
+    <p class="source mono">${results.source}</p>`;
+  host.appendChild(wrap);
+  const cards = [...wrap.querySelectorAll('.result')];
+  const lesson = wrap.querySelector('.lesson');
+  let shown = 0;
+  const steps = cards.length + 1;
+
+  function show(k, quick) {
+    if (k < cards.length) {
+      const card = cards[k];
+      const b = card.querySelector('[data-bits]');
+      const target = Number(b.dataset.bits);
+      if (quick) {
+        gsap.set(card, { opacity: 1, y: 0, rotateX: 0 });
+        b.textContent = target.toFixed(2);
+        return;
+      }
+      gsap.fromTo(card, { opacity: 0, y: 40, rotateX: -25 }, { opacity: 1, y: 0, rotateX: 0, duration: 0.8, ease: 'power3.out' });
+      const n = { v: 0 };
+      gsap.to(n, { v: target, duration: 1.2, delay: 0.3, ease: 'power2.out', onUpdate: () => (b.textContent = n.v.toFixed(2)) });
+      if (card.classList.contains('threat')) sfx.alarm();
+      else sfx.impact();
+    } else {
+      if (quick) return gsap.set(lesson, { opacity: 1, scale: 1 });
+      gsap.fromTo(lesson, { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.6, ease: 'back.out(2)' });
+      sfx.blip(1046);
+    }
+  }
+  return {
+    onEnter() {
+      shown = 0;
+      gsap.set([...cards, lesson], { opacity: 0 });
+    },
+    hasMore: () => shown < steps,
+    advance: () => show(shown++),
+    revealAll: () => {
+      while (shown < steps) show(shown++, true);
+    },
+  };
+}
+
 export const panelBuilders = {
+  results: resultsPanel,
   fingerprint: fingerprintPanel,
   audience: audiencePanel,
   matrix: matrixPanel,

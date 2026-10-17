@@ -1,6 +1,6 @@
-# Heros Shell — interactive 3D presentation
+# Who’s Watching Your Browser? — interactive 3D presentation
 
-Problem Solving course · Cyber security · by Ahmed Abobakr & Ali Ezz
+Problem Solving course · Cyber security in a connected society · by Ahmed Abobakr & Ali Ezz
 
 One continuous 3D world: every "slide" is a station, and moving on is a camera flight.
 Everything is drawn in code (no AI images) and all sounds are synthesized live.

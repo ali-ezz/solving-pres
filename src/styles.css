@@ -54,11 +54,11 @@ body:has(.panel.center.active) #ui::before {
 .lbl.show.hidden { opacity: 0; }
 .lbl.big { font-size: 22px; font-family: var(--display); font-weight: 700; letter-spacing: 0.02em; padding: 6px 14px; }
 .lbl.big .mono { font-family: var(--mono); font-weight: 400; color: var(--safe); }
-.lbl.small { font-size: 14px; }
+.lbl.small { font-size: 15px; }
 .lbl.threat { color: var(--threat); border-color: rgba(255, 59, 92, 0.4); }
 .lbl.safe { color: var(--safe); border-color: rgba(55, 226, 255, 0.4); }
-.lbl.module { text-align: center; line-height: 1.35; white-space: normal; width: 190px; }
-.lbl.module span { color: var(--muted); font-size: 13px; }
+.lbl.module { text-align: center; line-height: 1.4; padding: 6px 12px; }
+.lbl.module span { color: var(--muted); font-size: 13px; white-space: nowrap; }
 
 /* ── panels ────────────────────────────────── */
 .panel {
@@ -90,7 +90,7 @@ body:has(.panel.center.active) #ui::before {
   text-shadow: 0 0 40px rgba(55, 226, 255, 0.15);
 }
 .panel.center .title { font-size: clamp(52px, 6vw, 110px); }
-.sub { font-size: clamp(18px, 1.45vw, 26px); line-height: 1.45; color: var(--muted); max-width: 34em; }
+.sub { font-size: clamp(20px, 1.55vw, 28px); line-height: 1.45; color: var(--muted); max-width: 34em; }
 .sub b { color: var(--text); font-weight: 600; }
 
 .items { list-style: none; display: flex; flex-direction: column; gap: 16px; margin-top: 6px; }
@@ -98,7 +98,7 @@ body:has(.panel.center.active) #ui::before {
 .item {
   display: flex; flex-direction: column; gap: 4px;
   padding: 12px 0 12px 20px; border-left: 2px solid var(--line);
-  font-size: clamp(16px, 1.15vw, 21px); line-height: 1.45;
+  font-size: clamp(17px, 1.3vw, 23px); line-height: 1.45;
 }
 .panel.center .item { flex: 1; max-width: 330px; }
 .item b { font-family: var(--display); font-weight: 700; font-size: 1.2em; color: var(--text); }
@@ -109,7 +109,7 @@ body:has(.panel.center.active) #ui::before {
 .item.safe { border-left-color: var(--safe); }
 .item.safe b { color: var(--safe); }
 .item.step { opacity: 0; }
-.footnote { font-family: var(--mono); font-size: 13px; color: var(--faint); letter-spacing: 0.05em; }
+.footnote { font-family: var(--mono); font-size: 14px; color: var(--faint); letter-spacing: 0.05em; }
 .extra:empty { display: none; }
 /* the text layer ignores the mouse (so clicks reach navigation), except real controls */
 .panel.active .interactive { pointer-events: auto; }
@@ -122,7 +122,7 @@ body:has(.panel.center.active) #ui::before {
 .fp-rows { display: flex; flex-direction: column; min-height: 40px; }
 .fp-row {
   display: grid; grid-template-columns: 150px 1fr; gap: 14px; align-items: baseline;
-  padding: 7px 0; border-bottom: 1px solid rgba(120, 170, 255, 0.08); font-size: 15px;
+  padding: 7px 0; border-bottom: 1px solid rgba(120, 170, 255, 0.08); font-size: 16px;
 }
 .fp-row:last-child { border-bottom: 0; }
 .fp-row .k { color: var(--muted); font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
@@ -136,11 +136,11 @@ body:has(.panel.center.active) #ui::before {
   box-shadow: 0 0 0 1px rgba(55, 226, 255, 0.6), 0 0 60px rgba(55, 226, 255, 0.35);
   display: flex; flex-direction: column; align-items: center; gap: 10px;
 }
-.qr svg { width: min(340px, 30vh); height: auto; display: block; }
-.qr-url { color: #04060c; font-size: 14px; }
+.qr svg { width: min(360px, 36vh); height: auto; display: block; }
+.qr-url { color: #04060c; font-size: 13px; white-space: nowrap; }
 
 /* ── matrix ────────────────────────────────── */
-.matrix table { border-collapse: separate; border-spacing: 0; font-size: clamp(16px, 1.15vw, 21px); }
+.matrix table { border-collapse: separate; border-spacing: 0; font-size: clamp(17px, 1.3vw, 23px); }
 .matrix th, .matrix td { padding: 12px 18px; text-align: center; }
 .matrix td.crit { text-align: left; color: var(--muted); padding-right: 28px; }
 .matrix tbody tr td { border-top: 1px solid var(--line); }
@@ -163,7 +163,7 @@ body:has(.panel.center.active) #ui::before {
 .matrix .meter i { display: block; height: 100%; width: 0; background: var(--muted); transition: width 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .matrix tfoot td.hero .meter i { background: var(--safe); box-shadow: 0 0 12px var(--safe); }
 .matrix tfoot td.hero .total { color: var(--safe); }
-.matrix .total { font-size: 14px; color: var(--muted); }
+.matrix .total { font-size: 15px; color: var(--muted); }
 
 /* ── hub switches ──────────────────────────── */
 .hub { display: flex; flex-direction: column; gap: 12px; }
@@ -245,11 +245,13 @@ body.started.hint-right .edge.right { opacity: 0.6; transform: translateY(-50%) 
 
 #start {
   position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+  background: radial-gradient(ellipse 60% 45% at 50% 50%, rgba(4, 6, 12, 0.82), rgba(4, 6, 12, 0.35) 70%, transparent);
   pointer-events: none; transition: opacity 0.8s;
 }
 body.started #start { opacity: 0; }
 .start-title {
-  font: 700 clamp(48px, 7vw, 120px) var(--display); letter-spacing: -0.03em;
+  font: 700 clamp(44px, 5.4vw, 104px) var(--display); letter-spacing: -0.03em; line-height: 1.02;
+  text-align: center; max-width: 92vw;
   text-shadow: 0 0 60px rgba(55, 226, 255, 0.45);
 }
 .start-hint { color: var(--muted); font-size: 14px; letter-spacing: 0.08em; animation: pulse 2.4s infinite; }
@@ -266,4 +268,63 @@ kbd { font-family: var(--mono); border: 1px solid var(--line); border-radius: 5p
 /* the closing dome should glow around the title, not hide behind a dark wash */
 body:has(.st-outro.active) #ui::before {
   background: radial-gradient(ellipse 40% 30% at 50% 45%, rgba(4, 6, 12, 0.6) 0%, rgba(4, 6, 12, 0.15) 70%, transparent 100%);
+}
+
+/* ── titles assemble word by word ─────────── */
+.title { perspective: 600px; }
+.title .w { display: inline-block; overflow: hidden; vertical-align: top; padding: 0 0.02em 0.12em; margin-bottom: -0.12em; }
+.title .wi { display: inline-block; transform-origin: 50% 100%; will-change: transform; }
+
+/* centre panels never run under the side scenery */
+.panel.center { width: min(1180px, 78vw); }
+.st-demo .items { max-width: 64vw; margin: 6px auto 0; }
+
+/* ── "We tested it" result cards ──────────── */
+.results { display: flex; flex-direction: column; align-items: center; gap: 18px; perspective: 900px; }
+.result-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; width: min(1000px, 74vw); }
+.result {
+  text-align: left; background: var(--glass); border: 1px solid var(--line); border-radius: 18px;
+  padding: 20px 24px; backdrop-filter: blur(10px); display: flex; flex-direction: column; gap: 10px;
+}
+.result.threat { border-color: rgba(255, 59, 92, 0.5); box-shadow: 0 0 40px rgba(255, 59, 92, 0.12); }
+.result.safe { border-color: rgba(55, 226, 255, 0.55); box-shadow: 0 0 40px rgba(55, 226, 255, 0.15); }
+.result header { font: 600 clamp(15px, 1.1vw, 19px) var(--body); color: var(--muted); }
+.verdict-line { font: 700 clamp(24px, 2vw, 36px) var(--display); letter-spacing: -0.01em; }
+.result.threat .verdict-line { color: #ff8299; }
+.result.safe .verdict-line { color: var(--safe); }
+.bits { display: flex; align-items: baseline; gap: 10px; }
+.bits b { font-size: clamp(28px, 2.4vw, 42px); font-weight: 400; color: var(--text); }
+.bits span { color: var(--muted); font-size: 14px; }
+.result dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin-top: 4px; font-size: clamp(15px, 1.1vw, 18px); }
+.result dt { color: var(--muted); font-family: var(--mono); font-size: 0.8em; letter-spacing: 0.06em; text-transform: uppercase; padding-top: 0.2em; }
+.result dd { color: var(--text); }
+.lesson { font: 700 clamp(22px, 1.8vw, 32px) var(--display); color: var(--warn); }
+.source { font-size: 13px; color: var(--faint); }
+
+/* ── start screen ─────────────────────────── */
+.start-kicker { color: var(--safe); font-size: 15px; letter-spacing: 0.24em; text-transform: uppercase; }
+.start-names { color: var(--muted); font-size: 18px; letter-spacing: 0.04em; }
+
+/* dense centre stations: a smaller title leaves room for the table / cards */
+.st-matrix .title, .st-results .title { font-size: clamp(40px, 3.9vw, 72px); }
+.st-matrix.panel, .st-results.panel { gap: 16px; top: 47%; }
+.matrix table { width: min(1240px, 84vw); }
+.matrix td.crit { white-space: nowrap; }
+.matrix .opt { white-space: nowrap; min-width: 0; padding: 10px 16px; }
+.matrix th, .matrix td { padding: 10px 12px; }
+.result-cards { width: min(1240px, 82vw); }
+.result header { font-size: clamp(16px, 1.2vw, 21px); }
+.result dl { font-size: clamp(16px, 1.2vw, 20px); }
+.bits span { font-size: 15px; }
+.source { font-size: 14px; }
+
+/* the switch board must fit a 720 px tall projector */
+.hub { gap: 8px; }
+.hub-toggles { gap: 6px; }
+.tg { padding: 6px 10px; }
+@media (max-height: 820px) {
+  .st-hub .sub { display: none; }
+  .tg { padding: 4px 8px; font-size: 13px; }
+  .st-matrix .title, .st-results .title { font-size: clamp(34px, 3.4vw, 56px); }
+  .matrix th, .matrix td { padding: 7px 10px; }
 }

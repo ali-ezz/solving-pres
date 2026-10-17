@@ -68,7 +68,10 @@ export function createWorld(canvas, labelHost) {
     look: new THREE.Vector3(0, 0, 0),
     film: 0,
     frame: 'center',
+    warp: 0, // 0 at rest, 1 at full flight speed
   };
+  const streaks = addWarpStreaks(camera);
+  scene.add(camera);
   const mouse = { x: 0, y: 0, sx: 0, sy: 0 };
   window.addEventListener('pointermove', (e) => {
     mouse.x = (e.clientX / viewport.w) * 2 - 1;
@@ -103,8 +106,12 @@ export function createWorld(canvas, labelHost) {
           rig.pos.z += Math.sin(Math.PI * t) * lift * 0.6;
           rig.look.lerpVectors(from.look, look, Math.min(1, t * 1.15));
           rig.film = from.film + (toFilm - from.film) * t;
+          rig.warp = Math.sin(Math.PI * t) ** 2;
         },
-        onComplete: resolve,
+        onComplete: () => {
+          rig.warp = 0;
+          resolve();
+        },
       });
     });
   }
@@ -139,7 +146,11 @@ export function createWorld(canvas, labelHost) {
     // film offset shifts the lens sideways: the subject moves right while the
     // camera keeps looking straight at it
     camera.filmOffset = rig.film;
+    // a short field-of-view punch sells the speed of each flight
+    camera.fov = 45 + rig.warp * 12;
     camera.updateProjectionMatrix();
+    streaks.update(dt, rig.warp);
+    bloom.strength = 0.95 + rig.warp * 0.45;
 
     stars.rotation.y = t * 0.004;
     for (const fn of updaters) fn(t, dt);
@@ -157,6 +168,41 @@ export function createWorld(canvas, labelHost) {
     bloom,
     flyTo,
     onFrame: (fn) => updaters.add(fn),
+  };
+}
+
+// Light streaks rushing past the lens during a flight. They live in camera
+// space, so they always fly straight at the viewer.
+function addWarpStreaks(camera) {
+  const N = 260;
+  const pos = new Float32Array(N * 6);
+  const seeds = [];
+  for (let i = 0; i < N; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const r = 3 + Math.random() * 16;
+    seeds.push({ x: Math.cos(a) * r, y: Math.sin(a) * r * 0.6, z: -Math.random() * 90, len: 1 + Math.random() * 3 });
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const mat = new THREE.LineBasicMaterial({
+    color: COLORS.safe, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending,
+  });
+  const lines = new THREE.LineSegments(geo, mat);
+  lines.frustumCulled = false;
+  camera.add(lines);
+  return {
+    update(dt, warp) {
+      mat.opacity = warp * 0.55;
+      lines.visible = warp > 0.01;
+      if (!lines.visible) return;
+      seeds.forEach((q, i) => {
+        q.z += dt * (40 + 160 * warp);
+        if (q.z > -2) q.z -= 90;
+        const len = q.len * (1 + warp * 6);
+        pos.set([q.x, q.y, q.z, q.x, q.y, q.z - len], i * 6);
+      });
+      geo.attributes.position.needsUpdate = true;
+    },
   };
 }
 
