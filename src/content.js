@@ -147,12 +147,12 @@ export const stations = [
     title: 'Live demo',
     sub: 'Same test. Same laptop. <span class="threat">Chrome alone</span> vs <span class="safe">Chrome + Heros</span>.',
     items: [
-      { h: 'Fingerprint ID', p: 'Changes on every reload — the tracker can’t recognise you.' },
+      { h: 'Spoofed values', p: 'The tracker reads a fake GPU, screen and time zone.' },
+      { h: 'Canvas noise', p: 'The canvas hash is randomised — useless for tracking.' },
       { h: 'WebRTC IP', p: 'Blocked — your real address stays hidden.' },
-      { h: 'Canvas fingerprint', p: 'Randomised — every read returns a different hash.' },
     ],
     notes:
-      'Switch to Chrome. Run the test with Heros OFF, then ON. Reload twice to show the ID changing.',
+      'Switch to Chrome. Run our test with Heros OFF (real Mac values, "trackable"), then ON (spoofed values, noise detected). Then show EFF Cover Your Tracks: "randomized fingerprint".',
   },
   {
     id: 'outro',
