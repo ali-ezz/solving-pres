@@ -18,12 +18,17 @@
         <div class="id-label">Your fingerprint ID</div>
         <div class="id mono" id="fp-id">····-····</div>
         <div class="verdict" id="fp-verdict">Reading your browser…</div>
-        <div class="changed mono" id="fp-changed"></div>
-        <button class="reload" id="fp-reload">Reload &amp; test again</button>
+        <div class="changed mono" id="fp-timing"></div>
+        <div class="buttons">
+          <button class="reload" id="fp-reload">Reload &amp; test again</button>
+          <button class="reload ghost" id="fp-rescan">Scan again</button>
+        </div>
       </section>
 
       <section class="checks">
         <div class="check" id="c-canvas"><b>Canvas fingerprint</b><span>…</span></div>
+        <div class="check" id="c-patched"><b>Spoofed browser APIs</b><span>…</span></div>
+        <div class="changed mono" id="fp-patched"></div>
         <div class="check" id="c-webrtc"><b>WebRTC IP leak</b><span>…</span></div>
         <div class="check" id="c-cookies"><b>Cookies readable by page scripts</b><span>…</span></div>
       </section>
@@ -35,8 +40,9 @@
 
       <section class="explain">
         <h2>How to read this</h2>
-        <p><b>Same ID after reloading?</b> Then any site can recognise you again — even in incognito, even after clearing cookies.</p>
-        <p><b>With Heros Shell</b> the canvas gets random noise, so the ID changes on every visit, and WebRTC can no longer reveal your IP.</p>
+        <p><b>No protection?</b> Then the same ID comes back on every visit — even in incognito, even after clearing cookies.</p>
+        <p><b>With protection</b> the page detects canvas noise and spoofed values (GPU, screen, time zone…), and WebRTC can no longer reveal your IP. Values may stay the same on reload here but differ on every other site, so sites cannot link your visits.</p>
+        <p><b>"Switched on late"</b> means the protection arrived after the page’s first scripts ran — real trackers run that early too.</p>
         <p class="small">Nothing on this page is stored or uploaded. The only network request is the WebRTC test itself.</p>
       </section>
     </main>

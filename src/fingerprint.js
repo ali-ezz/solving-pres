@@ -243,3 +243,77 @@ export function compareWithLast(fp) {
     labels: changed.map((k) => TRACKED[k]),
   };
 }
+
+// ── protection detection ────────────────────────────────────
+// Instead of guessing from reloads, look for the fingerprints of protection
+// itself: altered canvas pixels and browser APIs that are no longer native.
+
+const isNative = (fn) => {
+  try {
+    return typeof fn === 'function' && /\{\s*\[native code\]\s*\}\s*$/.test(Function.prototype.toString.call(fn));
+  } catch {
+    return false;
+  }
+};
+
+const getter = (proto, key) => {
+  try {
+    return Object.getOwnPropertyDescriptor(proto, key)?.get;
+  } catch {
+    return undefined;
+  }
+};
+
+// Paint a flat colour and read it back: an untouched browser returns exactly
+// that colour; canvas-noise protection changes some pixels.
+function canvasNoise() {
+  try {
+    const c = document.createElement('canvas');
+    c.width = c.height = 24;
+    const g = c.getContext('2d');
+    g.fillStyle = 'rgb(100, 150, 200)';
+    g.fillRect(0, 0, 24, 24);
+    const d = g.getImageData(0, 0, 24, 24).data;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i] !== 100 || d[i + 1] !== 150 || d[i + 2] !== 200 || d[i + 3] !== 255) return true;
+    }
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+export function detectProtection() {
+  const checks = [
+    ['Canvas export', () => HTMLCanvasElement.prototype.toDataURL],
+    ['Canvas pixels', () => CanvasRenderingContext2D.prototype.getImageData],
+    ['WebGL info', () => WebGLRenderingContext.prototype.getParameter],
+    ['Audio data', () => AudioBuffer.prototype.getChannelData],
+    ['CPU cores', () => getter(Navigator.prototype, 'hardwareConcurrency')],
+    ['User agent', () => getter(Navigator.prototype, 'userAgent')],
+    ['Platform', () => getter(Navigator.prototype, 'platform')],
+    ['Languages', () => getter(Navigator.prototype, 'languages')],
+    ['Screen size', () => getter(Screen.prototype, 'width')],
+    ['Time zone', () => Intl.DateTimeFormat.prototype.resolvedOptions],
+    ['WebRTC', () => window.RTCPeerConnection],
+  ];
+  const patched = checks
+    .filter(([, get]) => {
+      const fn = get();
+      return fn !== undefined && !isNative(fn);
+    })
+    .map(([name]) => name);
+  // values defined directly on the navigator object are a classic spoof
+  try {
+    if (Object.getOwnPropertyNames(navigator).length) patched.push('Navigator overrides');
+  } catch { /* ignore */ }
+  const noise = canvasNoise();
+  const twice = (() => {
+    try {
+      return canvasHash() !== canvasHash();
+    } catch {
+      return false;
+    }
+  })();
+  return { noise, unstable: twice, patched, active: noise || twice || patched.length > 0 };
+}
