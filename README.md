@@ -8,13 +8,13 @@ glowing road. Everything is drawn in code (no AI images) and all sounds are synt
 The story, 8 stations (about 8–10 minutes):
 
 1. **Your browser knows who you are** — the hook
-2. **The problem** — what cyber security is, why it matters (Chromium, WannaCry, Equifax)
+2. **The problem** — what cyber security is, why it matters (Chromium in browsers and apps, WannaCry, Equifax)
 3. **Four ways you are watched** — trackers, fingerprinting, cookie theft, WebRTC leaks
 4. **Test the problem** — the audience scans the QR code and sees their own fingerprint
 5. **Our solution: Heros Shell** — the three protection zones, then its control panel
 6. **Test the solution** — live demo in Chrome: Chrome alone vs Chrome + Heros
 7. **Compare & measure** — decision matrix, then the measured EFF results
-8. **Close** — control your browser, reclaim your data; questions
+8. **Close** — how we decided, four habits, questions
 
 ## Run it
 

@@ -43,13 +43,13 @@ export const stations = [
     itemStyle: 'grid',
     items: [
       { step: true, h: 'Everything runs in a tab', p: 'Banking, school portals, hospital records, government services.' },
-      { step: true, h: 'One engine, most browsers', p: 'Chrome, Edge, Brave, Opera and Vivaldi are all built on <b>Chromium</b>.' },
+      { step: true, h: 'One engine, everywhere', p: '<b>Chromium</b> runs Chrome, Edge, Brave and Opera — and apps like VS Code, Slack and Discord.' },
       { step: true, tone: 'threat', h: 'WannaCry · 2017', p: 'Ransomware hit 200,000+ computers in 150 countries. UK hospitals cancelled operations.' },
       { step: true, tone: 'threat', h: 'Equifax · 2017', p: 'A web-app flaw that already had a fix exposed ~147 million people.' },
     ],
     footnote: 'One weak point in software everyone uses becomes everyone’s problem.',
     notes:
-      'Step 1 of the decision process: define the problem. Chromium is the open-source engine under most browsers, so the browser is everyone’s front door. WannaCry (May 2017) disrupted the UK’s NHS. Equifax (2017) was breached through an Apache Struts flaw whose fix had been out for two months.',
+      'Step 1 of the decision process: define the problem. Chromium is the open-source engine under most browsers — and under desktop apps built with Electron, like VS Code, Slack and Discord. One flaw there reaches almost everyone. WannaCry (May 2017) disrupted the UK’s NHS. Equifax (2017) was breached through an Apache Struts flaw whose fix had been out for two months.',
   },
   {
     id: 'threats',
@@ -88,7 +88,7 @@ export const stations = [
     beats: [
       {
         title: 'Heros Shell',
-        sub: 'A browser extension that guards you in three layers — built by Ahmed Abobakr.',
+        sub: 'A browser extension that guards you in three layers — before anything reaches you.',
         itemStyle: 'grid',
         items: [
           { step: true, tone: 'safe', h: 'Perimeter', p: 'Checks every request. Trackers and ads are dropped before they load.' },
@@ -138,21 +138,19 @@ export const stations = [
       'Step 3: compare the alternatives against the same criteria. Choosing protection is a decision under uncertainty — we don’t know which attack comes next — so we use the Maximin rule from the lecture: pick the option whose worst case is best. Every other option has a ✗ somewhere; Heros’ worst case is still ✓. Next press: the measured results. uBlock Origin Lite + Proton VPN still leaves a unique fingerprint (real GPU, time zone, cores). Heros randomises it.',
   },
   {
-    id: 'method',
-    layout: 'center',
-    kicker: 'What we applied from the course',
-    title: 'How we solved it',
-    notes:
-      'Tie it back to the course. Lecture 1: we encoded a technical message for a non-technical audience — plain words, a visual channel, and a feedback loop through the QR test. Lecture 2: we followed the decision steps and chose by Maximin. Lecture 3: a consultative model — input from the audience’s phones and an independent test before deciding, which protects against groupthink.',
-  },
-  {
     id: 'outro',
     layout: 'center',
     kicker: 'Cyber security is everyone’s job',
     title: 'Control your browser.<br>Reclaim your data.',
+    items: [
+      { step: true, h: 'Facts before opinions', p: 'We measured the problem on your phones before choosing anything.' },
+      { step: true, h: 'The best worst case', p: 'We picked the option that still protects when things go wrong.' },
+      { step: true, h: 'A decision you can check', p: 'Every claim was tested live — by you and by an independent test.' },
+    ],
     chips: ['Update your browser', 'Block trackers', 'VPN on public Wi-Fi', 'Trust your extensions'],
-    sub: 'Thank you — questions?',
-    notes: 'One line of advice the audience can use tonight, then thank them and invite questions.',
+    closing: 'Thank you — questions?',
+    notes:
+      'Close the loop quietly: we defined the problem and gathered facts (your phones), compared options on the same criteria and chose by the best worst case (Maximin), and shared the decision with you and an independent test instead of deciding alone. Then the four habits, then thank them and invite questions.',
   },
 ];
 
@@ -215,31 +213,3 @@ export const controls = {
     { name: 'Hardware', examples: ['Canvas noise', 'WebRTC lock', 'Camera gate', 'Mic gate'] },
   ],
 };
-
-// "How we solved it" (station "method"): one card per lecture, revealed one by one.
-export const method = [
-  {
-    lecture: 'Lecture 1 · Communication',
-    title: 'Clear message, less noise',
-    points: [
-      'Plain words, no jargon: less semantic noise',
-      'Visual channel, and feedback through your own test',
-    ],
-  },
-  {
-    lecture: 'Lecture 2 · Decision making',
-    title: 'A non-programmed decision',
-    points: [
-      'Define the problem → gather facts → compare with criteria → choose',
-      'Decision under uncertainty: we chose by <b>Maximin</b>, the best worst case',
-    ],
-  },
-  {
-    lecture: 'Lecture 3 · Sharing decisions',
-    title: 'A consultative model',
-    points: [
-      'Input from your phones and an independent test (EFF) before deciding',
-      'We tested our own idea against its rivals — constructive disagreement, no groupthink',
-    ],
-  },
-];

@@ -286,44 +286,7 @@ function resultsPanel(host, st, { results }) {
   };
 }
 
-// ── "How we solved it": one card per lecture ─────────────────
-function methodPanel([host], st, { method }) {
-  const wrap = h('div', 'method');
-  wrap.innerHTML = method
-    .map((m) => `
-      <article class="lecture">
-        <div class="lec">${m.lecture}</div>
-        <h3>${m.title}</h3>
-        <ul>${m.points.map((p) => `<li>${p}</li>`).join('')}</ul>
-      </article>`)
-    .join('');
-  host.appendChild(wrap);
-  const cards = [...wrap.children];
-  let shown = 0;
-  const show = (k, quick) => {
-    if (quick) return gsap.set(cards[k], { opacity: 1, y: 0 });
-    gsap.fromTo(cards[k], { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' });
-    st.step(k);
-    sfx.blip(784 + k * 130);
-  };
-  return [{
-    onEnter() {
-      shown = 0;
-      gsap.set(cards, { opacity: 0 });
-    },
-    hasMore: () => shown < cards.length,
-    advance: () => show(shown++),
-    revealAll: () => {
-      while (shown < cards.length) {
-        st.step(shown);
-        show(shown++, true);
-      }
-    },
-  }];
-}
-
 export const panelBuilders = {
-  method: methodPanel,
   audience: audiencePanel,
   // first beat: the three zones (plain step items); second beat: the switch board
   heros: ([, controlsHost], st, content) => [null, controlsPanel(controlsHost, st, content)],

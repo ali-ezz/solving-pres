@@ -42,7 +42,7 @@ function typeOut(el, text, { duration = 0.4, delay = 0 } = {}) {
   });
 }
 
-const world = createWorld(document.getElementById('world'), document.getElementById('labels'), document.getElementById('scene3d'));
+const world = createWorld(document.getElementById('world'), document.getElementById('labels'));
 const stations = createStations(world, content);
 const ui = document.getElementById('ui');
 
@@ -62,9 +62,10 @@ const panels = data.map((d, i) => {
       const chips = (b.chips || []).map((c) => `<span>${c}</span>`).join('');
       return `<div class="beat" data-b="${k}">
         <h1 class="title">${splitLines(b.title)}</h1>
-        ${chips ? `<div class="chips">${chips}</div>` : ''}
         ${b.sub ? `<p class="sub">${b.sub}</p>` : ''}
         ${items ? `<ul class="items ${b.itemStyle || ''}">${items}</ul>` : ''}
+        ${chips ? `<div class="chips">${chips}</div>` : ''}
+        ${b.closing ? `<p class="sub closing">${b.closing}</p>` : ''}
         <div class="extra"></div>
         ${b.footnote ? `<p class="footnote">${b.footnote}</p>` : ''}
       </div>`;

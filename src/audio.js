@@ -149,7 +149,7 @@ export function alarm() {
   });
 }
 
-// Switch click for the Nevai Hub toggles.
+// Switch click for the Heros control toggles.
 export function click(on = true) {
   if (!ctx) return;
   const t = ctx.currentTime;

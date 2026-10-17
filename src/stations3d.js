@@ -1,7 +1,6 @@
 // The 3D "set pieces" — one per station — built only from code primitives.
 import * as THREE from 'three';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-import { CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
 import gsap from 'gsap';
 import { COLORS } from './world.js';
 import * as sfx from './audio.js';
@@ -154,15 +153,21 @@ function station(index, build, { camOffset = CAM_OFFSET, lookOffset = new THREE.
   // hand-off: the set we leave settles back a little, the one we reach grows into place
   const enter = s.enter;
   const leave = s.leave;
+  // only the current set is shown, so nothing from a neighbour drifts into view
+  let hideLater = null;
   s.enter = () => {
+    hideLater?.kill();
+    group.visible = true;
     gsap.to(group.scale, { x: 1, y: 1, z: 1, duration: 1.4, ease: 'power3.out' });
     enter();
   };
   s.leave = () => {
     gsap.to(group.scale, { x: 0.9, y: 0.9, z: 0.9, duration: 1.2, ease: 'power2.inOut' });
+    hideLater = gsap.delayedCall(1.3, () => (group.visible = false));
     leave();
   };
   group.scale.setScalar(0.9);
+  group.visible = false;
   return s;
 }
 
@@ -306,7 +311,7 @@ function problem(i) {
     const inner = new THREE.Mesh(new THREE.SphereGeometry(0.45, 32, 16), basic(COLORS.safe, 0.9));
     core.add(shell, inner);
     g.add(core);
-    const coreLabel = s.addLabel(label('Chromium', 'big hidden'));
+    const coreLabel = s.addLabel(label('Chromium · browsers & apps', 'big hidden'));
     coreLabel.position.copy(CORE).add(new THREE.Vector3(0, 2, 0));
     g.add(coreLabel);
     const links = stream({ count: 60, color: COLORS.safe, size: 0.24, speed: 0.6, from: () => CORE.clone(), to: () => roof(pickB()) });
@@ -408,41 +413,45 @@ function problem(i) {
 // ── 4 · audience: the QR code stands in the world, phones read their IDs ─
 function audience(i) {
   return station(i, (s, g) => {
-    // the card itself is a real DOM element (built in panels.js) placed in 3D;
-    // the cursor tilts the view less here, so the code stays easy to scan
+    // the card is a real DOM element (built in panels.js) pinned to this spot in the world;
+    // it turns with the camera, and the cursor tilts the view less here so the code stays easy to scan
     s.cam.parallax = 0.5;
+    const CARD = new THREE.Vector3(0, 0.3, 0);
     s.mountCard = (el) => {
-      const obj = new CSS3DObject(el);
-      obj.position.set(0, 0.3, 0);
-      obj.scale.setScalar(0.015);
+      const holder = document.createElement('div');
+      holder.className = 'qr-holder';
+      holder.appendChild(el);
+      const obj = new CSS2DObject(holder);
+      obj.position.copy(CARD);
       g.add(obj);
       s.card = el;
     };
+    const view = new THREE.Vector3();
 
-    // six phones in a gentle arc behind the card; each one gets its own ID
-    const spots = [[-7.4, 2.6, -4.5], [-8.4, -0.4, -3.5], [-7, -3.4, -2.5], [7.4, 2.6, -4.5], [8.4, -0.4, -3.5], [7, -3.4, -2.5]];
+    // four phones beside the card; each one reads its own ID
+    const spots = [[-7, 1.9, -1.5], [-7, -2.1, -1], [7, 1.9, -1.5], [7, -2.1, -1]];
     const hex = () => Math.floor(rand(0, 0xffff)).toString(16).padStart(4, '0');
     const phones = spots.map(([x, y, z], k) => {
       const p = new THREE.Group();
       p.position.set(x, y, z);
       const frameMat = basic(COLORS.safe, 0.7);
-      p.add(rectFrame(1.3, 2.3, 0.05, frameMat));
-      const screen = new THREE.Mesh(new THREE.PlaneGeometry(1.15, 2.15), basic(COLORS.warn, 0));
+      p.add(rectFrame(1.1, 2, 0.05, frameMat));
+      const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 1.85), basic(COLORS.warn, 0));
       screen.position.z = -0.02;
       p.add(screen);
       const notch = new THREE.Mesh(new THREE.PlaneGeometry(0.35, 0.05), frameMat);
-      notch.position.y = 0.95;
+      notch.position.y = 0.82;
       p.add(notch);
-      const l = s.addLabel(label(`<span class="mono">ID ${hex()}·${hex()}</span>`, 'small id hidden'));
-      l.position.set(0, -1.6, 0);
+      const l = s.addLabel(label(`<span class="mono">ID ${hex()}</span>`, 'small id hidden'));
+      l.position.set(0, -1.45, 0);
       p.add(l);
       g.add(p);
       // the test travels from the code to this phone
       const side = Math.sign(x);
       const beam = stream({
         count: 12, color: COLORS.safe, size: 0.22, speed: 0.6, curve: 0.5,
-        from: () => new THREE.Vector3(side * 3.4, rand(-2.5, 3), 0),
-        to: () => new THREE.Vector3(x - side * 0.6, y + rand(-0.6, 0.6), z),
+        from: () => new THREE.Vector3(side * 3.6, rand(-2, 2.5), 0),
+        to: () => new THREE.Vector3(x - side * 0.5, y + rand(-0.6, 0.6), z),
       });
       g.add(beam);
       return { p, screen, frameMat, l, beam, base: y, seed: k };
@@ -474,6 +483,13 @@ function audience(i) {
       timers.splice(0).forEach(clearTimeout);
     };
     s.update = (t, dt) => {
+      if (s.card && s.camera) {
+        // the card faces +z; seen from the side it turns, like a real plate in space
+        view.copy(s.camera.position).sub(g.position).sub(CARD);
+        const yaw = Math.atan2(view.x, view.z);
+        const pitch = Math.atan2(view.y, Math.hypot(view.x, view.z));
+        s.card.style.transform = `perspective(1100px) rotateY(${yaw}rad) rotateX(${-pitch}rad)`;
+      }
       phones.forEach((ph) => {
         ph.p.position.y = ph.base + Math.sin(t * 0.8 + ph.seed) * 0.15;
         ph.p.lookAt(s.cam.pos);
@@ -707,26 +723,32 @@ function heros(i, controls) {
     // a padlock on the page: what the shield protects
     const lock = new THREE.Group();
     const lockMat = basic(COLORS.safe, 1);
-    const plate = new THREE.Mesh(new THREE.CircleGeometry(1.05, 40), basic(0x06101f, 0.92));
+    const plate = new THREE.Mesh(new THREE.CircleGeometry(1.05, 40), basic(0x06101f, 1));
+    // every part sits a little in front of the one behind it (no two in the same plane)
     const body = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.72), lockMat);
-    body.position.y = -0.25;
+    body.position.set(0, -0.25, 0.03);
     const shackle = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.065, 8, 24, Math.PI), lockMat);
-    shackle.position.y = 0.35;
+    shackle.position.set(0, 0.35, 0.03);
     const legs = [-0.3, 0.3].map((x) => {
       const leg = new THREE.Mesh(new THREE.PlaneGeometry(0.13, 0.26), lockMat);
-      leg.position.set(x, 0.22, 0);
+      leg.position.set(x, 0.22, 0.03);
       return leg;
     });
     const hole = new THREE.Mesh(new THREE.CircleGeometry(0.08, 16), basic(0x06101f, 1));
-    hole.position.set(0, -0.2, 0.01);
+    hole.position.set(0, -0.2, 0.06);
     lock.add(plate, body, shackle, ...legs, hole);
     lock.position.set(0, -0.35, 0.15);
     g.add(lock);
 
     const R = 5.2;
-    const shield = makeShield(R, 2, { lattice: 0.2, glow: 0.14, maxHit: 0.2 });
+    const shield = makeShield(R, 2, { lattice: 0.2, glow: 0.14, maxHit: 0.04 });
     shield.group.scale.setScalar(0.001);
     g.add(shield.group);
+    // the window, the lock and the shield share one centre: give them a fixed drawing order
+    // (window, then lock, then the glass) so they never swap places and flicker
+    win.traverse((o) => (o.renderOrder = 1));
+    lock.traverse((o) => (o.renderOrder = 2));
+    shield.group.traverse((o) => (o.renderOrder = 3));
 
     // one orbit per layer, each at its own tilt, each with its name
     const layers = [
@@ -848,45 +870,6 @@ function heros(i, controls) {
   }, { camOffset: new THREE.Vector3(0, 1.2, 25) });
 }
 
-// ── 8 · how we solved it: one pillar of light under each lecture card ─
-function method(i) {
-  return station(i, (s, g) => {
-    const pillars = [-10.5, 0, 10.5].map((x, k) => {
-      const p = new THREE.Group();
-      p.position.set(x, -6, -3);
-      const ring = new THREE.Mesh(new THREE.RingGeometry(1.4, 1.55, 64), basic(COLORS.dim, 0.9, { side: THREE.DoubleSide }));
-      ring.rotation.x = -Math.PI / 2;
-      const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1, 8).translate(0, 0.5, 0), basic(COLORS.safe, 0.5));
-      beam.scale.y = 0.001;
-      const rise = stream({
-        count: 16, color: COLORS.safe, size: 0.24, speed: 0.35,
-        from: () => new THREE.Vector3(rand(-1, 1), 0, rand(-1, 1)),
-        to: () => new THREE.Vector3(rand(-0.4, 0.4), 15, 0),
-      });
-      p.add(ring, beam, rise);
-      g.add(p);
-      return { ring, beam, rise, k };
-    });
-    s.enter = () => pillars.forEach((pl) => {
-      pl.ring.material.color.set(COLORS.dim);
-      pl.beam.scale.y = 0.001;
-      pl.rise.material.opacity = 0;
-    });
-    s.step = (k) => {
-      const pl = pillars[k];
-      if (!pl) return;
-      const c = new THREE.Color(COLORS.safe);
-      gsap.to(pl.ring.material.color, { r: c.r, g: c.g, b: c.b, duration: 0.5 });
-      gsap.to(pl.beam.scale, { y: 15, duration: 1.2, ease: 'power3.out' });
-      fade(pl.rise.material, 0.7, 0.8, 0.3);
-    };
-    s.update = (t, dt) => pillars.forEach((pl) => {
-      pl.rise.userData.update(dt);
-      pl.ring.rotation.z = t * 0.3 + pl.k;
-    });
-  });
-}
-
 // ── 6 · demo: Chrome alone vs Chrome + Heros ───────────────
 function demo(i) {
   return station(i, (s, g) => {
@@ -931,7 +914,7 @@ function outro(i) {
       const w = browserWindow(3.4, 2.2, COLORS.safe, { rows: false });
       const a = (k / 9) * Math.PI * 2;
       const r = k % 3 === 0 ? 4 : 8.5;
-      w.position.set(Math.cos(a) * r, -2 + (k % 3) * 1.6, Math.sin(a) * r);
+      w.position.set(Math.cos(a) * r, -6 + (k % 3) * 1.2, Math.sin(a) * r);
       w.userData.base = w.position.y;
       city.add(w);
     }
@@ -1005,13 +988,14 @@ export function createStations(world, content) {
   const builders = {
     intro, problem, threats, audience,
     heros: (k) => heros(k, content.controls),
-    demo, compare, method, outro,
+    demo, compare, outro,
   };
   const list = content.stations.map((c, k) => {
     const s = builders[c.id](k);
     s.id = c.id;
     s.cam.frame = c.layout === 'center' ? 'center' : 'left';
     s.beatCams = (s.beatPoses || []).map((p) => p && camAt(s, p.pos, p.look));
+    s.camera = world.camera;
     world.scene.add(s.group);
     world.onFrame((t, dt) => s.update(t, dt));
     return s;

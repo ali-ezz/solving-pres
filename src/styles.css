@@ -28,7 +28,6 @@ html, body {
 
 #world { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 #labels { position: fixed; inset: 0; pointer-events: none; }
-#scene3d { position: fixed; inset: 0; pointer-events: none; }
 #ui { position: fixed; inset: 0; pointer-events: none; }
 
 /* soft vignette so text always reads */
@@ -120,8 +119,9 @@ body:has(.panel.center.active) #ui::before {
 .panel.active .interactive { pointer-events: auto; }
 
 /* ── QR ────────────────────────────────────── */
-/* the card stands in the 3D world (CSS3DRenderer); it fades in at its station */
+/* the card is pinned to its spot in the 3D world and turns with the camera; it fades in at its station */
 .qr-card {
+  position: relative;
   opacity: 0; transition: opacity 0.9s;
   display: flex; flex-direction: column; align-items: center; gap: 14px;
   padding: 22px 22px 18px; border-radius: 24px;
@@ -138,7 +138,7 @@ body:has(.panel.center.active) #ui::before {
 .qr-top { display: none; align-items: center; gap: 10px; color: var(--safe); font-size: 17px; letter-spacing: 0.22em; text-transform: uppercase; }
 .qr-top .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--safe); box-shadow: 0 0 10px var(--safe); animation: pulse 1.6s infinite; }
 .qr-plate { position: relative; background: #eef8fc; border-radius: 18px; padding: 10px; overflow: hidden; }
-.qr-plate svg { display: block; width: 400px; height: auto; }
+.qr-plate svg { display: block; width: min(320px, 33vh); height: auto; }
 .qr-dots { fill: #071426; }
 .qr-eyes { color: #0b6e8a; fill: #0b6e8a; }
 .qr-logo-bg { fill: #eef8fc; }
@@ -152,7 +152,7 @@ body:has(.panel.center.active) #ui::before {
   animation: qrscan 2.6s ease-in-out infinite;
 }
 @keyframes qrscan { 0%, 100% { top: 4%; } 50% { top: 95%; } }
-.qr-url { color: var(--muted); font-size: 17px; white-space: nowrap; letter-spacing: 0.02em; }
+.qr-url { color: var(--muted); font-size: 13px; white-space: nowrap; letter-spacing: 0.02em; }
 
 /* ── matrix ────────────────────────────────── */
 .matrix table { border-collapse: separate; border-spacing: 0; font-size: clamp(17px, 1.3vw, 23px); }
@@ -281,7 +281,7 @@ kbd { font-family: var(--mono); border: 1px solid var(--line); border-radius: 5p
 
 /* the closing dome should glow around the title, not hide behind a dark wash */
 body:has(.st-outro.active) #ui::before {
-  background: radial-gradient(ellipse 40% 30% at 50% 45%, rgba(4, 6, 12, 0.6) 0%, rgba(4, 6, 12, 0.15) 70%, transparent 100%);
+  background: radial-gradient(ellipse 55% 45% at 50% 55%, rgba(4, 6, 12, 0.82) 0%, rgba(4, 6, 12, 0.45) 65%, rgba(4, 6, 12, 0.1) 100%);
 }
 
 /* ── titles rise line by line ─────────────── */
@@ -383,20 +383,6 @@ body:has(.st-outro.active) #ui::before {
 .footnote.lead { color: var(--muted); }
 .st-problem .footnote { font-family: var(--body); font-size: clamp(15px, 1.1vw, 19px); color: var(--warn); letter-spacing: 0; }
 
-/* ── "How we solved it": one card per lecture ── */
-.method { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: min(1240px, 80vw); text-align: left; }
-.lecture {
-  background: var(--glass); border: 1px solid var(--line); border-radius: 18px; backdrop-filter: blur(10px);
-  padding: 22px 24px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
-  opacity: 0;
-}
-.lecture .lec { font-family: var(--mono); font-size: 13px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--safe); }
-.lecture h3 { font: 700 clamp(21px, 1.6vw, 28px) var(--display); letter-spacing: -0.01em; }
-.lecture ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
-.lecture li { position: relative; padding-left: 20px; color: var(--muted); font-size: clamp(15px, 1.1vw, 19px); line-height: 1.45; }
-.lecture li::before { content: ''; position: absolute; left: 2px; top: 0.6em; width: 7px; height: 7px; border-radius: 2px; background: var(--safe); box-shadow: 0 0 8px var(--safe); }
-.lecture li b { color: var(--text); font-weight: 600; }
-
 /* maximin row under the decision matrix */
 .matrix tr.maximin td { border-top: 1px solid var(--line); }
 .matrix tr.maximin .crit { color: var(--text); font-weight: 600; }
@@ -426,3 +412,11 @@ body:has(.st-outro.active) #ui::before {
 }
 
 .st-compare .footnote { color: var(--muted); }
+
+/* closing station: three short points, the habits, then the thanks */
+.st-outro .items { width: min(1240px, 76vw); }
+.st-outro .items .item {
+  max-width: none; border-left: 0; border: 1px solid var(--line); border-radius: 14px;
+  padding: 14px 18px; background: rgba(6, 10, 20, 0.72); backdrop-filter: blur(8px);
+}
+.st-outro .closing { color: var(--text); font-family: var(--display); font-weight: 500; }

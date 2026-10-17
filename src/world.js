@@ -5,7 +5,6 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
-import { CSS3DRenderer } from 'three/addons/renderers/CSS3DRenderer.js';
 import gsap from 'gsap';
 import { viewport, onViewportResize } from './viewport.js';
 
@@ -32,7 +31,7 @@ function frameOffset(frame) {
   return -(target - 0.5) * 35 * 0.8284 * aspect;
 }
 
-export function createWorld(canvas, labelHost, cssHost) {
+export function createWorld(canvas, labelHost) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(viewport.w, viewport.h);
@@ -40,9 +39,6 @@ export function createWorld(canvas, labelHost, cssHost) {
 
   const labels = new CSS2DRenderer({ element: labelHost });
   labels.setSize(viewport.w, viewport.h);
-  // real DOM elements placed in the 3D scene (sharp, untouched by bloom)
-  const css3d = new CSS3DRenderer({ element: cssHost });
-  css3d.setSize(viewport.w, viewport.h);
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.FogExp2(0x070f22, 0.012);
@@ -131,7 +127,6 @@ export function createWorld(canvas, labelHost, cssHost) {
     renderer.setSize(w, h);
     composer.setSize(w, h);
     labels.setSize(w, h);
-    css3d.setSize(w, h);
     if (!flight || !flight.isActive()) rig.film = frameOffset(rig.frame);
   }
   onViewportResize(resize);
@@ -163,9 +158,6 @@ export function createWorld(canvas, labelHost, cssHost) {
 
     composer.render();
     labels.render(scene, camera);
-    css3d.render(scene, camera);
-    // CSS3DRenderer ignores the lens shift: move its whole layer by the same amount
-    cssHost.style.transform = `translateX(${-camera.projectionMatrix.elements[8] * viewport.w * 0.5}px)`;
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
