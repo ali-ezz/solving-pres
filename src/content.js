@@ -21,6 +21,7 @@ export const config = {
 
 // Each station = one stop of the camera in the 3D world.
 // `items` with `step: true` are revealed one at a time with → / Space.
+// `itemStyle`: 'grid' shows items as a 2×2 grid of cards, 'numbered' as numbered steps.
 // A station with `beats` shows its beats one after another, in the same place:
 // each beat has its own title, sub, items and footnote.
 export const stations = [
@@ -29,50 +30,56 @@ export const stations = [
     layout: 'left',
     kicker: 'Cyber security · Problem solving',
     title: 'Your browser knows<br>who you are.',
-    sub: 'Even when you think you are invisible.',
+    sub: 'No login. No cookies. It still recognises you — and so can every site you visit.',
     notes:
-      'Pause. Let the line sit. Then: "Today: what the browser gives away, why it matters for all of us, and how to fix it — live."',
+      'Pause. Let the line sit. Then: "We treated this as a problem-solving case, using the decision process from our course: define the problem, gather the facts, compare the alternatives, then decide and test."',
   },
   {
     id: 'problem',
     layout: 'left',
-    kicker: '01 · The problem',
-    title: 'Cyber security',
-    sub: 'Protecting devices, networks and data from being stolen, damaged or misused.',
+    kicker: '01 · Define the problem',
+    title: 'Cyber security<br>is public safety.',
+    sub: 'Protecting devices, networks and data from theft, damage and misuse. Today most of that data passes through one door: the browser.',
+    itemStyle: 'grid',
     items: [
-      { step: true, h: 'Life runs in a browser', p: 'Banks, schools, hospitals, government — all through a web page.' },
-      { step: true, h: 'One engine, billions of users', p: 'Chrome, Edge, Brave, Opera and Vivaldi are all built on <b>Chromium</b>. One flaw reaches most of us.' },
-      { step: true, tone: 'threat', h: '2017 · WannaCry & Equifax', p: 'Ransomware cancelled NHS hospital operations. One unpatched web app exposed ~147 million people.' },
+      { step: true, h: 'Everything runs in a tab', p: 'Banking, school portals, hospital records, government services.' },
+      { step: true, h: 'One engine, most browsers', p: 'Chrome, Edge, Brave, Opera and Vivaldi are all built on <b>Chromium</b>.' },
+      { step: true, tone: 'threat', h: 'WannaCry · 2017', p: 'Ransomware hit 200,000+ computers in 150 countries. UK hospitals cancelled operations.' },
+      { step: true, tone: 'threat', h: 'Equifax · 2017', p: 'A web-app flaw that already had a fix exposed ~147 million people.' },
     ],
+    footnote: 'One weak point in software everyone uses becomes everyone’s problem.',
     notes:
-      'Cyber security is public safety now. Chromium = the open-source project most browsers are built on, so the browser is everyone’s front door. WannaCry (May 2017) hit the UK’s NHS; Equifax (2017) was breached through an unpatched Apache Struts web app.',
+      'Step 1 of the decision process: define the problem. Chromium is the open-source engine under most browsers, so the browser is everyone’s front door. WannaCry (May 2017) disrupted the UK’s NHS. Equifax (2017) was breached through an Apache Struts flaw whose fix had been out for two months.',
   },
   {
     id: 'threats',
     layout: 'left',
-    kicker: '02 · How you are watched',
+    kicker: '02 · Gather the facts',
     title: 'Four ways<br>you are watched',
-    sub: 'Hacking is not only breaking in. Often it is quietly watching.',
+    sub: 'Most attacks don’t break in. They quietly watch, collect and follow.',
+    itemStyle: 'grid',
     items: [
-      { step: true, tone: 'threat', h: 'Trackers', p: 'Hidden scripts that follow you from site to site.' },
-      { step: true, tone: 'threat', h: 'Fingerprinting', p: 'Recognise your device from its GPU, fonts and screen — no cookies needed.' },
-      { step: true, tone: 'threat', h: 'Cookie theft', p: 'Steal your session cookie and they are logged in as you.' },
-      { step: true, tone: 'threat', h: 'WebRTC leak', p: 'A video-call feature that can reveal your real IP — even behind a VPN.' },
+      { step: true, tone: 'threat', h: 'Trackers', p: 'Third-party scripts that follow you from site to site.' },
+      { step: true, tone: 'threat', h: 'Fingerprinting', p: 'GPU, screen, fonts and time zone add up to an ID — no cookies needed.' },
+      { step: true, tone: 'threat', h: 'Cookie theft', p: 'Steal one session cookie and they are logged in as you.' },
+      { step: true, tone: 'threat', h: 'WebRTC leak', p: 'A video-call feature that can expose your real IP — even behind a VPN.' },
     ],
     notes:
-      'Tracker = a script from another company embedded in the page. Fingerprint = your device’s unique combination of settings. Cookie = your login ticket. WebRTC = the feature that powers Meet/Zoom in the browser.',
+      'Step 2: gather the facts. Tracker = a script from another company embedded in the page. Fingerprint = your device’s unique combination of settings. Cookie = your login ticket. WebRTC = the feature that powers Meet/Zoom in the browser.',
   },
   {
     id: 'audience',
     layout: 'left',
     kicker: '03 · Test the problem',
-    title: 'Now check yours.',
-    sub: 'Scan the code. Your phone shows what any website can learn about you — in two seconds.',
+    title: 'Your turn.<br>Scan and see.',
+    itemStyle: 'numbered',
     items: [
-      { h: 'Then reload the page.', p: 'Same ID again? That is how sites recognise you — no cookies, no login.' },
+      { h: 'Scan the code', p: 'It opens our test page. Nothing is stored or sent.' },
+      { h: 'Read your ID', p: 'Built only from what your phone reveals to any website.' },
+      { h: 'Reload the page', p: 'Same ID again? Then any site can recognise you.' },
     ],
     notes:
-      'Give them ~30 seconds. Ask: "Who got the same ID after reloading?" — almost everyone. That is the problem. (Keep Heros OFF on the laptop until the demo.)',
+      'Give them ~30 seconds. Ask: "Who got the same ID after reloading?" — almost everyone. That is the problem, measured on their own phones. (Keep Heros OFF on the laptop until the demo.)',
   },
   {
     id: 'heros',
@@ -81,31 +88,32 @@ export const stations = [
     beats: [
       {
         title: 'Heros Shell',
-        sub: 'A browser extension built by Ahmed Abobakr.',
+        sub: 'A browser extension that guards you in three layers — built by Ahmed Abobakr.',
+        itemStyle: 'grid',
         items: [
-          { step: true, tone: 'safe', h: 'Perimeter', p: 'Every request is checked first. Trackers are dropped before they load.' },
-          { step: true, tone: 'safe', h: 'Sandbox', p: 'Untrusted scripts run isolated — no access to cookies, keystrokes or tokens.' },
-          { step: true, tone: 'safe', h: 'Barrier', p: 'Camera and mic need consent. WebRTC leaks are blocked. Fingerprints get random noise.' },
-          { step: true, tone: 'safe', h: '100% local', p: 'Every decision runs on your device — no cloud, no telemetry.' },
+          { step: true, tone: 'safe', h: 'Perimeter', p: 'Checks every request. Trackers and ads are dropped before they load.' },
+          { step: true, tone: 'safe', h: 'Sandbox', p: 'Untrusted scripts run isolated, away from your cookies and keystrokes.' },
+          { step: true, tone: 'safe', h: 'Barrier', p: 'Camera, mic and WebRTC locked down. Fingerprints get random noise.' },
+          { step: true, tone: 'safe', h: '100% local', p: 'Every decision happens on your device. No cloud, no telemetry.' },
         ],
       },
       {
-        title: '200+ controls.<br>One extension.',
-        sub: 'Every switch runs locally and applies instantly. Try one.',
+        title: '200+ switches.<br>Your rules.',
+        sub: 'Every setting runs on your device and applies instantly. Try one.',
       },
     ],
     notes:
-      'Three zones: network → page scripts → hardware, and nothing is sent to a cloud. Watch the attacks bounce off. Next press: the Heros dashboard — flip a few switches, then "Enable all".',
+      'Three layers: network → page scripts → hardware, and nothing is sent to a cloud. Watch the attacks bounce off. Next press: the Heros control panel — flip a few switches, then "Enable all".',
   },
   {
     id: 'demo',
     layout: 'center',
     kicker: '05 · Test the solution',
     title: 'Live demo',
-    sub: 'Same test. Same laptop. <span class="threat">Chrome alone</span> vs <span class="safe">Chrome + Heros</span>.',
+    sub: 'Same laptop, same test — first <span class="threat">Chrome alone</span>, then <span class="safe">Chrome + Heros</span>.',
     items: [
-      { h: 'Spoofed values', p: 'The tracker reads a fake GPU, screen and time zone.' },
-      { h: 'Canvas noise', p: 'The canvas hash is randomised — useless for tracking.' },
+      { h: 'Without Heros', p: 'The tracker reads the real GPU, screen and time zone.' },
+      { h: 'With Heros', p: 'Fake values, and a canvas hash that changes every visit.' },
       { h: 'From the first moment', p: 'Protected before the page’s first script runs.' },
     ],
     notes:
@@ -114,20 +122,28 @@ export const stations = [
   {
     id: 'compare',
     layout: 'center',
-    kicker: '06 · Compare & measure',
+    kicker: '06 · Compare & decide',
     beats: [
       {
         title: 'Same criteria.<br>Five options.',
-        sub: 'Browser-level protection — click an option to score it.',
-        footnote: '✓ protects  ·  ~ partly  ·  ✗ does not protect',
+        sub: 'Protection inside the browser — click an option to score it.',
+        footnote: '✓ protects  ·  ~ partly  ·  ✗ does not protect  ·  Maximin = the best worst case',
       },
       {
         title: 'Measured, not claimed.',
-        sub: 'Same laptop. Same test: EFF <b>Cover Your Tracks</b>.',
+        sub: 'Same laptop, same independent test: EFF <b>Cover Your Tracks</b>.',
       },
     ],
     notes:
-      'Decision matrix from the lecture: define criteria, score every alternative, then decide. Antivirus guards files, a VPN guards the network — neither works inside the browser tab. Next press: the measured results. uBlock Origin Lite + Proton VPN still leaves a unique fingerprint (real GPU, time zone, cores). Heros randomises it. Lesson: blocking trackers is not the same as stopping fingerprinting.',
+      'Step 3: compare the alternatives against the same criteria. Choosing protection is a decision under uncertainty — we don’t know which attack comes next — so we use the Maximin rule from the lecture: pick the option whose worst case is best. Every other option has a ✗ somewhere; Heros’ worst case is still ✓. Next press: the measured results. uBlock Origin Lite + Proton VPN still leaves a unique fingerprint (real GPU, time zone, cores). Heros randomises it.',
+  },
+  {
+    id: 'method',
+    layout: 'center',
+    kicker: 'What we applied from the course',
+    title: 'How we solved it',
+    notes:
+      'Tie it back to the course. Lecture 1: we encoded a technical message for a non-technical audience — plain words, a visual channel, and a feedback loop through the QR test. Lecture 2: we followed the decision steps and chose by Maximin. Lecture 3: a consultative model — input from the audience’s phones and an independent test before deciding, which protects against groupthink.',
   },
   {
     id: 'outro',
@@ -199,3 +215,31 @@ export const controls = {
     { name: 'Hardware', examples: ['Canvas noise', 'WebRTC lock', 'Camera gate', 'Mic gate'] },
   ],
 };
+
+// "How we solved it" (station "method"): one card per lecture, revealed one by one.
+export const method = [
+  {
+    lecture: 'Lecture 1 · Communication',
+    title: 'Clear message, less noise',
+    points: [
+      'Plain words, no jargon: less semantic noise',
+      'Visual channel, and feedback through your own test',
+    ],
+  },
+  {
+    lecture: 'Lecture 2 · Decision making',
+    title: 'A non-programmed decision',
+    points: [
+      'Define the problem → gather facts → compare with criteria → choose',
+      'Decision under uncertainty: we chose by <b>Maximin</b>, the best worst case',
+    ],
+  },
+  {
+    lecture: 'Lecture 3 · Sharing decisions',
+    title: 'A consultative model',
+    points: [
+      'Input from your phones and an independent test (EFF) before deciding',
+      'We tested our own idea against its rivals — constructive disagreement, no groupthink',
+    ],
+  },
+];

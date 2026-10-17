@@ -135,7 +135,7 @@ body:has(.panel.center.active) #ui::before {
 .qr-card .corner.tr { top: -6px; right: -6px; border-left: 0; border-bottom: 0; border-radius: 0 10px 0 0; }
 .qr-card .corner.bl { bottom: -6px; left: -6px; border-right: 0; border-top: 0; border-radius: 0 0 0 10px; }
 .qr-card .corner.br { bottom: -6px; right: -6px; border-left: 0; border-top: 0; border-radius: 0 0 10px 0; }
-.qr-top { display: flex; align-items: center; gap: 10px; color: var(--safe); font-size: 17px; letter-spacing: 0.22em; text-transform: uppercase; }
+.qr-top { display: none; align-items: center; gap: 10px; color: var(--safe); font-size: 17px; letter-spacing: 0.22em; text-transform: uppercase; }
 .qr-top .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--safe); box-shadow: 0 0 10px var(--safe); animation: pulse 1.6s infinite; }
 .qr-plate { position: relative; background: #eef8fc; border-radius: 18px; padding: 10px; overflow: hidden; }
 .qr-plate svg { display: block; width: 400px; height: auto; }
@@ -360,3 +360,69 @@ body:has(.st-outro.active) #ui::before {
   padding: 8px 16px; border-radius: 999px; border: 1px solid rgba(55, 226, 255, 0.4);
   background: rgba(55, 226, 255, 0.07);
 }
+
+/* ── item styles: 2×2 cards and numbered steps ── */
+.items.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.items.grid .item {
+  border-left: 0; border: 1px solid var(--line); border-radius: 14px;
+  padding: 14px 16px; background: rgba(10, 18, 36, 0.5); backdrop-filter: blur(6px);
+  font-size: clamp(15px, 1.08vw, 19px); gap: 6px;
+}
+.items.grid .item b { font-size: 1.12em; }
+.items.grid .item.threat { border-color: rgba(255, 59, 92, 0.45); box-shadow: inset 0 2px 0 rgba(255, 59, 92, 0.55); }
+.items.grid .item.safe { border-color: rgba(55, 226, 255, 0.45); box-shadow: inset 0 2px 0 rgba(55, 226, 255, 0.55); }
+.items.numbered { counter-reset: n; gap: 14px; }
+.items.numbered .item { counter-increment: n; position: relative; border-left: 0; padding: 4px 0 4px 64px; }
+.items.numbered .item::before {
+  content: counter(n); position: absolute; left: 0; top: 4px;
+  width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center;
+  font: 700 20px var(--display); color: var(--safe);
+  border: 1px solid rgba(55, 226, 255, 0.5); background: rgba(55, 226, 255, 0.08);
+  box-shadow: 0 0 18px rgba(55, 226, 255, 0.25);
+}
+.footnote.lead { color: var(--muted); }
+.st-problem .footnote { font-family: var(--body); font-size: clamp(15px, 1.1vw, 19px); color: var(--warn); letter-spacing: 0; }
+
+/* ── "How we solved it": one card per lecture ── */
+.method { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: min(1240px, 80vw); text-align: left; }
+.lecture {
+  background: var(--glass); border: 1px solid var(--line); border-radius: 18px; backdrop-filter: blur(10px);
+  padding: 22px 24px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+}
+.lecture .lec { font-family: var(--mono); font-size: 13px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--safe); }
+.lecture h3 { font: 700 clamp(21px, 1.6vw, 28px) var(--display); letter-spacing: -0.01em; }
+.lecture ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.lecture li { position: relative; padding-left: 20px; color: var(--muted); font-size: clamp(15px, 1.1vw, 19px); line-height: 1.45; }
+.lecture li::before { content: ''; position: absolute; left: 2px; top: 0.6em; width: 7px; height: 7px; border-radius: 2px; background: var(--safe); box-shadow: 0 0 8px var(--safe); }
+.lecture li b { color: var(--text); font-weight: 600; }
+
+/* maximin row under the decision matrix */
+.matrix tr.maximin td { border-top: 1px solid var(--line); }
+.matrix tr.maximin .crit { color: var(--text); font-weight: 600; }
+.matrix .mm { display: inline-block; font-size: 1.3em; font-weight: 700; opacity: 0; transition: opacity 0.4s; }
+.matrix .mm.show { opacity: 1; }
+.matrix .mm.yes { color: var(--safe); text-shadow: 0 0 14px var(--safe); }
+.matrix .mm.no { color: var(--threat); }
+.matrix .mm.part { color: var(--warn); }
+.matrix td.best { background: rgba(55, 226, 255, 0.1); border-radius: 0 0 10px 10px; }
+
+/* a phone's fingerprint ID in the QR scene */
+.lbl.id { color: var(--warn); border-color: rgba(255, 176, 32, 0.45); font-size: 13px; }
+.lbl.id .mono { color: var(--warn); }
+
+/* short screens (768 px and below): tighter type so every panel clears the progress bar */
+@media (max-height: 800px) {
+  .panel, .beat { gap: 14px; }
+  .panel.left .title { font-size: clamp(36px, 3.9vw, 60px); }
+  .sub { font-size: clamp(17px, 1.35vw, 22px); }
+  .items.grid { gap: 10px; }
+  .items.grid .item { padding: 10px 14px; font-size: clamp(14px, 1.05vw, 17px); }
+  .st-compare .title { font-size: clamp(32px, 3.2vw, 50px); }
+  .st-compare.panel { top: 47.5%; }
+  .matrix th, .matrix td { padding: 5px 10px; }
+  .matrix .opt { padding: 7px 14px; }
+  .matrix table { font-size: clamp(15px, 1.2vw, 19px); }
+}
+
+.st-compare .footnote { color: var(--muted); }

@@ -64,7 +64,7 @@ const panels = data.map((d, i) => {
         <h1 class="title">${splitLines(b.title)}</h1>
         ${chips ? `<div class="chips">${chips}</div>` : ''}
         ${b.sub ? `<p class="sub">${b.sub}</p>` : ''}
-        ${items ? `<ul class="items">${items}</ul>` : ''}
+        ${items ? `<ul class="items ${b.itemStyle || ''}">${items}</ul>` : ''}
         <div class="extra"></div>
         ${b.footnote ? `<p class="footnote">${b.footnote}</p>` : ''}
       </div>`;

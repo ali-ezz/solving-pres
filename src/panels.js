@@ -58,7 +58,6 @@ function audiencePanel(hosts, st, { config }) {
   const url = config.testPageUrl;
   card.innerHTML = `
     <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
-    <div class="qr-top mono"><span class="dot"></span>Scan me · fingerprint test</div>
     <div class="qr-plate">${qrSvg(url)}<div class="qr-scan"></div></div>
     <div class="qr-url mono">${url.replace(/^https?:\/\//, '')}</div>`;
   st.mountCard(card);
@@ -83,6 +82,12 @@ function matrixPanel(host, st, { matrix }) {
         .join('')}</tbody>
       <tfoot><tr><td class="crit">Score</td>${matrix.options
         .map((o, j) => `<td data-j="${j}"><div class="meter"><i></i></div><span class="total mono">–</span></td>`)
+        .join('')}</tr>
+      <tr class="maximin"><td class="crit">Worst case (Maximin)</td>${matrix.options
+        .map((o, j) => {
+          const w = Math.min(...o.scores);
+          return `<td class="mmc" data-j="${j}"><span class="mm ${tone[w]}">${glyph[w]}</span></td>`;
+        })
         .join('')}</tr></tfoot>
     </table>`;
   host.appendChild(wrap);
@@ -95,12 +100,14 @@ function matrixPanel(host, st, { matrix }) {
     const total = o.scores.reduce((a, b) => a + b, 0);
     wrap.querySelector(`.opt[data-j="${j}"]`).classList.add('on');
     const cells = wrap.querySelectorAll(`.cell[data-j="${j}"] .g`);
-    const foot = wrap.querySelector(`tfoot td[data-j="${j}"]`);
+    const foot = wrap.querySelector(`tfoot tr:first-child td[data-j="${j}"]`);
     if (quick) {
       cells.forEach((c) => c.classList.add('show'));
       foot.querySelector('i').style.width = `${(total / max) * 100}%`;
       foot.querySelector('.total').textContent = `${total}/${max}`;
       foot.classList.toggle('hero', !!o.hero);
+      wrap.querySelector(`.mmc[data-j="${j}"] .mm`).classList.add('show');
+      markBest();
       return;
     }
     cells.forEach((c, i) => setTimeout(() => {
@@ -112,8 +119,18 @@ function matrixPanel(host, st, { matrix }) {
       const t = { v: 0 };
       gsap.to(t, { v: total, duration: 0.6, onUpdate: () => (foot.querySelector('.total').textContent = `${Math.round(t.v)}/${max}`) });
       foot.classList.toggle('hero', !!o.hero);
+      wrap.querySelector(`.mmc[data-j="${j}"] .mm`).classList.add('show');
       if (o.hero) sfx.impact();
+      markBest();
     }, matrix.criteria.length * 140 + 80);
+  }
+
+  // once every option is scored, highlight the one with the best worst case
+  function markBest() {
+    if (revealed.size < matrix.options.length) return;
+    const worst = matrix.options.map((o) => Math.min(...o.scores));
+    const best = worst.indexOf(Math.max(...worst));
+    wrap.querySelector(`.mmc[data-j="${best}"]`).classList.add('best');
   }
 
   wrap.addEventListener('click', (e) => {
@@ -125,8 +142,9 @@ function matrixPanel(host, st, { matrix }) {
     onEnter() {
       revealed.clear();
       wrap.querySelectorAll('.opt').forEach((b) => b.classList.remove('on'));
-      wrap.querySelectorAll('.g').forEach((g) => g.classList.remove('show'));
-      wrap.querySelectorAll('tfoot td[data-j]').forEach((td) => {
+      wrap.querySelectorAll('.g, .mm').forEach((g) => g.classList.remove('show'));
+      wrap.querySelectorAll('.mmc').forEach((td) => td.classList.remove('best'));
+      wrap.querySelectorAll('tfoot tr:first-child td[data-j]').forEach((td) => {
         td.classList.remove('hero');
         td.querySelector('i').style.width = '0';
         td.querySelector('.total').textContent = '–';
@@ -268,7 +286,44 @@ function resultsPanel(host, st, { results }) {
   };
 }
 
+// ── "How we solved it": one card per lecture ─────────────────
+function methodPanel([host], st, { method }) {
+  const wrap = h('div', 'method');
+  wrap.innerHTML = method
+    .map((m) => `
+      <article class="lecture">
+        <div class="lec">${m.lecture}</div>
+        <h3>${m.title}</h3>
+        <ul>${m.points.map((p) => `<li>${p}</li>`).join('')}</ul>
+      </article>`)
+    .join('');
+  host.appendChild(wrap);
+  const cards = [...wrap.children];
+  let shown = 0;
+  const show = (k, quick) => {
+    if (quick) return gsap.set(cards[k], { opacity: 1, y: 0 });
+    gsap.fromTo(cards[k], { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' });
+    st.step(k);
+    sfx.blip(784 + k * 130);
+  };
+  return [{
+    onEnter() {
+      shown = 0;
+      gsap.set(cards, { opacity: 0 });
+    },
+    hasMore: () => shown < cards.length,
+    advance: () => show(shown++),
+    revealAll: () => {
+      while (shown < cards.length) {
+        st.step(shown);
+        show(shown++, true);
+      }
+    },
+  }];
+}
+
 export const panelBuilders = {
+  method: methodPanel,
   audience: audiencePanel,
   // first beat: the three zones (plain step items); second beat: the switch board
   heros: ([, controlsHost], st, content) => [null, controlsPanel(controlsHost, st, content)],
