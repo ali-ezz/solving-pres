@@ -32,19 +32,6 @@ export const stations = [
       'Pause. Let the line sit. Then: "Today: what the browser gives away, why it matters for all of us, and how to fix it — live."',
   },
   {
-    id: 'society',
-    layout: 'left',
-    kicker: 'Why it matters',
-    title: 'Life now runs<br>in a browser.',
-    items: [
-      { step: true, h: 'Banks, schools, hospitals', p: 'Most of daily life now passes through a web browser.' },
-      { step: true, tone: 'threat', h: '2017 · WannaCry', p: 'Ransomware disrupted hospitals across the UK’s NHS — appointments and operations were cancelled.' },
-      { step: true, tone: 'threat', h: '2017 · Equifax', p: 'One unpatched web application exposed the data of about 147 million people.' },
-    ],
-    notes:
-      'Cyber security is not an IT topic any more — it is public safety. WannaCry (May 2017) hit the NHS; Equifax (2017) was breached through an unpatched Apache Struts web app.',
-  },
-  {
     id: 'chromium',
     layout: 'left',
     kicker: '01 · Define the problem',
@@ -58,9 +45,22 @@ export const stations = [
       'Chromium = the open-source project that Chrome and most other browsers are built on. So the browser is the front door for almost everyone.',
   },
   {
+    id: 'society',
+    layout: 'left',
+    kicker: '01 · Why it matters',
+    title: 'Life now runs<br>in a browser.',
+    items: [
+      { step: true, h: 'Banks, schools, hospitals', p: 'Most of daily life now passes through a web browser.' },
+      { step: true, tone: 'threat', h: '2017 · WannaCry', p: 'Ransomware disrupted hospitals across the UK’s NHS — appointments and operations were cancelled.' },
+      { step: true, tone: 'threat', h: '2017 · Equifax', p: 'One unpatched web application exposed the data of about 147 million people.' },
+    ],
+    notes:
+      'Cyber security is not an IT topic any more — it is public safety. WannaCry (May 2017) hit the NHS; Equifax (2017) was breached through an unpatched Apache Struts web app.',
+  },
+  {
     id: 'fingerprint',
     layout: 'left',
-    kicker: '01 · Define the problem',
+    kicker: '02 · The problem, live',
     title: 'Meet this laptop’s<br>fingerprint.',
     sub: 'Read live, right now. No login. No cookies. Just the browser.',
     footnote: 'Computed on this device. Nothing is stored or uploaded.',
@@ -95,77 +95,52 @@ export const stations = [
       'Tracker = a script from another company embedded in the page. Fingerprint = what we just saw. Cookie = your login ticket. WebRTC = the feature that powers Meet/Zoom in the browser.',
   },
   {
-    id: 'gaps',
-    layout: 'left',
-    kicker: '02 · Gather the facts',
-    title: 'The usual answers<br>miss the browser.',
-    items: [
-      { step: true, h: 'Antivirus', p: 'Built to catch malicious files and programs. Trackers are ordinary web scripts running inside the page.' },
-      { step: true, h: 'VPN', p: 'Hides your IP from websites — but your fingerprint stays the same.' },
-      { step: true, h: 'Incognito', p: 'Forgets your history on this device. Websites still see the same fingerprint.' },
-    ],
-    notes:
-      'These tools protect the device or the network. The tracking happens inside the browser tab — a place none of them watch.',
-  },
-  {
     id: 'matrix',
     layout: 'center',
     kicker: '03 · Compare alternatives',
     title: 'Same criteria.<br>Five options.',
-    sub: 'Click an option to score it.',
+    sub: 'Browser-level protection — click an option to score it.',
     footnote: '✓ protects  ·  ~ partly  ·  ✗ does not protect',
     notes:
-      'The decision matrix from the lecture: define criteria, score every alternative, then decide. Point out that no single tool wins every row — Heros does not hide your IP; a VPN does. That is why we combine them.',
-  },
-  {
-    id: 'results',
-    layout: 'center',
-    kicker: '03 · Test the alternatives',
-    title: 'We tested it.',
-    sub: 'Same laptop. Same test: EFF <b>Cover Your Tracks</b>.',
-    notes:
-      'Left: a popular combination — uBlock Origin Lite + Proton VPN. Trackers blocked, IP hidden… but the fingerprint is still unique: real GPU, real time zone, real cores. Right: Heros Shell — the fingerprint is randomized. Lesson: blocking trackers is not the same as stopping fingerprinting.',
+      'The decision matrix from the lecture: define criteria, score every alternative, then decide. Antivirus guards files, a VPN guards the network — neither watches inside the browser tab, where tracking happens.',
   },
   {
     id: 'heros',
     layout: 'left',
-    kicker: '04 · One solution',
+    kicker: '04 · Our solution',
     title: 'Heros Shell',
     sub: 'A browser shield built by Ahmed Abobakr (Nevai).',
     items: [
       { step: true, tone: 'safe', h: 'Perimeter', p: 'Every request is checked first. Trackers are dropped before they load.' },
       { step: true, tone: 'safe', h: 'Sandbox', p: 'Untrusted scripts run isolated — no access to cookies, keystrokes or tokens.' },
       { step: true, tone: 'safe', h: 'Barrier', p: 'Camera, mic and location need your consent. WebRTC leaks are blocked. Fingerprints get random noise.' },
+      { step: true, tone: 'safe', h: '100% local', p: 'Every decision runs on your device — no cloud, no telemetry.' },
     ],
     notes:
-      'Three zones: network → page scripts → hardware. Watch the attacks from before: now they bounce off.',
-  },
-  {
-    id: 'local',
-    layout: 'left',
-    kicker: '04 · One solution',
-    title: 'Local-first.<br>Zero cloud.',
-    items: [
-      { tone: 'threat', h: 'Cloud security', p: 'Your data travels to a server to be judged — then the verdict comes back.' },
-      { tone: 'safe', h: 'Heros Shell', p: 'Every decision runs on your device. No telemetry. No external APIs.' },
-    ],
-    footnote: 'Built on Manifest V3 — Chrome’s modern extension platform.',
-    notes:
-      'If the protection itself sends your data to the cloud, you have just moved the problem. Heros keeps the decisions on the machine.',
+      'Three zones: network → page scripts → hardware. And nothing is sent to a cloud to be judged — the protection itself never leaks your data. Watch the attacks bounce off.',
   },
   {
     id: 'hub',
     layout: 'left',
-    kicker: '04 · One solution · Nevai Hub',
+    kicker: '04 · Our solution · Nevai Hub',
     title: '200+ controls.<br>One dashboard.',
     sub: 'Every switch runs locally and applies instantly. Try one.',
     notes:
       'Nevai Hub is the control centre for Heros Shell and the other Nevai modules. Flip a few switches, then "Enable all".',
   },
   {
+    id: 'results',
+    layout: 'center',
+    kicker: '05 · Test it',
+    title: 'We tested it.',
+    sub: 'Same laptop. Same test: EFF <b>Cover Your Tracks</b>.',
+    notes:
+      'Left: a popular combination — uBlock Origin Lite + Proton VPN. Trackers blocked, IP hidden… but the fingerprint is still unique: real GPU, real time zone, real cores. Right: Heros Shell — the fingerprint is randomized. Lesson: blocking trackers is not the same as stopping fingerprinting.',
+  },
+  {
     id: 'demo',
     layout: 'center',
-    kicker: '05 · Prove it',
+    kicker: '05 · Prove it live',
     title: 'Live demo',
     sub: 'Same test. Same laptop. <span class="threat">Chrome alone</span> vs <span class="safe">Chrome + Heros</span>.',
     items: [
@@ -179,7 +154,7 @@ export const stations = [
   {
     id: 'takeaways',
     layout: 'left',
-    kicker: '06 · What you can do today',
+    kicker: '06 · What you can do',
     title: 'Four habits.<br>Big difference.',
     items: [
       { step: true, tone: 'safe', h: 'Update your browser', p: 'Most attacks use flaws that are already fixed.' },
@@ -205,16 +180,15 @@ export const matrix = {
   criteria: [
     'Blocks trackers & ads',
     'Stops fingerprinting',
-    'Stops WebRTC IP leak',
-    'Hides your IP address',
+    'Stops WebRTC IP leaks',
     'Your data stays on your device',
   ],
   options: [
-    { name: 'Chrome alone', scores: [0, 0, 0, 0, 1] },
-    { name: 'Antivirus', scores: [1, 0, 0, 0, 1] },
-    { name: 'VPN', scores: [0, 0, 1, 2, 0] },
-    { name: 'uBlock Origin Lite', scores: [2, 0, 0, 0, 2] },
-    { name: 'Heros Shell', scores: [2, 2, 2, 0, 2], hero: true },
+    { name: 'Chrome alone', scores: [0, 0, 0, 1] },
+    { name: 'Antivirus', scores: [1, 0, 0, 1] },
+    { name: 'VPN', scores: [0, 0, 1, 0] },
+    { name: 'uBlock Origin Lite', scores: [2, 0, 0, 2] },
+    { name: 'Heros Shell', scores: [2, 2, 2, 2], hero: true },
   ],
 };
 

@@ -31,19 +31,15 @@ const splitWords = (html) =>
     .map((line) => line.trim().split(/\s+/).map((w) => `<span class="w"><span class="wi">${w}</span></span>`).join(' '))
     .join('<br>');
 
-// Decode a line of text from random glyphs, left to right.
-const GLYPHS = '█▓▒░<>/\\|_-=+*#01';
-function scramble(el, text, { duration = 0.9, delay = 0 } = {}) {
-  const state = { p: 0 };
+// Type a line of text out, left to right, with a block cursor.
+function typeOut(el, text, { duration = 0.6, delay = 0 } = {}) {
+  const state = { n: 0 };
+  el.textContent = '';
   return gsap.to(state, {
-    p: 1, duration, delay, ease: 'none',
+    n: text.length, duration, delay, ease: 'none',
     onUpdate: () => {
-      const n = Math.floor(state.p * text.length);
-      let out = text.slice(0, n);
-      for (let k = n; k < text.length; k++) {
-        out += text[k] === ' ' ? ' ' : GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
-      }
-      el.textContent = out;
+      const n = Math.round(state.n);
+      el.innerHTML = `${text.slice(0, n)}<span class="cursor">▍</span>`;
     },
     onComplete: () => (el.textContent = text),
   });
@@ -115,15 +111,15 @@ function showPanel(i, delay) {
   const rest = el.querySelectorAll('.sub, .items, .extra, .footnote');
 
   gsap.set(title, { opacity: 1 });
-  gsap.fromTo(kicker, { opacity: 0 }, { opacity: 1, duration: 0.3, delay });
-  scramble(kicker, d.kicker || '', { duration: 0.8, delay });
+  gsap.fromTo(kicker, { opacity: 0 }, { opacity: 1, duration: 0.25, delay });
+  typeOut(kicker, d.kicker || '', { duration: Math.min(0.7, 0.02 * (d.kicker || '').length + 0.2), delay });
   gsap.fromTo(words,
-    { yPercent: 110, rotateX: -70, opacity: 0 },
-    { yPercent: 0, rotateX: 0, opacity: 1, duration: 0.9, delay: delay + 0.1, stagger: 0.06, ease: 'power4.out' });
+    { y: 26, opacity: 0, filter: 'blur(8px)' },
+    { y: 0, opacity: 1, filter: 'blur(0px)', duration: 0.7, delay: delay + 0.05, stagger: 0.035, ease: 'power3.out', clearProps: 'filter' });
   gsap.fromTo(rest,
-    { opacity: 0, y: 30, filter: 'blur(10px)' },
+    { opacity: 0, y: 24, filter: 'blur(8px)' },
     {
-      opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.9, delay: delay + 0.35, stagger: 0.1, ease: 'power3.out',
+      opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.7, delay: delay + 0.25, stagger: 0.08, ease: 'power3.out',
       // a leftover transform would make each part a positioning context
       clearProps: 'transform,filter',
     });
@@ -131,11 +127,9 @@ function showPanel(i, delay) {
 
 function hidePanel(i) {
   const { el } = panels[i];
-  const words = el.querySelectorAll('.title .wi');
-  const rest = el.querySelectorAll('.kicker, .sub, .items, .extra, .footnote');
-  gsap.to(words, { yPercent: -110, opacity: 0, duration: 0.35, stagger: 0.02, ease: 'power2.in' });
-  gsap.to(rest, {
-    opacity: 0, y: -20, filter: 'blur(8px)', duration: 0.35, stagger: 0.03, ease: 'power2.in',
+  const parts = el.querySelectorAll('.kicker, .title .wi, .sub, .items, .extra, .footnote');
+  gsap.to(parts, {
+    opacity: 0, y: -14, filter: 'blur(6px)', duration: 0.3, stagger: 0.01, ease: 'power2.in',
     onComplete: () => el.classList.remove('active'),
   });
 }
@@ -159,10 +153,11 @@ async function go(i, { full = false, instant = false } = {}) {
   updateHud();
   history.replaceState(null, '', `#${i + 1}`);
 
-  const flight = world.flyTo(st.cam, { instant, duration: prev < 0 ? 2.6 : 1.6 });
-  if (!instant) sfx.whoosh(prev < 0 ? 2.4 : 1.5);
-  showPanel(i, instant ? 0 : prev < 0 ? 1.6 : 0.95);
-  setTimeout(() => st.showLabels(true), instant ? 0 : 1000);
+  const flight = world.flyTo(st.cam, { instant, duration: prev < 0 ? 2.4 : 1.5 });
+  if (!instant) sfx.whoosh(prev < 0 ? 2.2 : 1.4);
+  // text lands while the camera is still settling, so the screen is never empty
+  showPanel(i, instant ? 0 : prev < 0 ? 1.4 : 0.75);
+  setTimeout(() => st.showLabels(true), instant ? 0 : 900);
   p.ctl.onEnter?.();
   if (full) p.ctl.revealAll();
   await flight;

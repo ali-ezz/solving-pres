@@ -130,14 +130,38 @@ body:has(.panel.center.active) #ui::before {
 
 /* ── QR ────────────────────────────────────── */
 /* the QR floats in the middle of the phone ring (right side of the screen) */
-.st-audience .qr-card { position: absolute; left: 62vw; top: calc(50% + 5vh); transform: translate(-50%, -50%); }
+.st-audience .qr-card { position: absolute; left: 62vw; top: calc(50% + 2vh); transform: translate(-50%, -50%); }
 .qr-card {
-  background: #fff; border-radius: 22px; padding: 22px 22px 14px;
-  box-shadow: 0 0 0 1px rgba(55, 226, 255, 0.6), 0 0 60px rgba(55, 226, 255, 0.35);
-  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  padding: 22px 22px 18px; border-radius: 24px;
+  background: linear-gradient(160deg, rgba(14, 30, 58, 0.92), rgba(6, 12, 26, 0.92));
+  border: 1px solid rgba(55, 226, 255, 0.35);
+  box-shadow: 0 0 0 1px rgba(55, 226, 255, 0.08) inset, 0 0 70px rgba(55, 226, 255, 0.28), 0 30px 80px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(12px);
 }
-.qr svg { width: min(360px, 36vh); height: auto; display: block; }
-.qr-url { color: #04060c; font-size: 13px; white-space: nowrap; }
+.qr-card .corner { position: absolute; width: 26px; height: 26px; border: 3px solid var(--safe); filter: drop-shadow(0 0 6px var(--safe)); }
+.qr-card .corner.tl { top: -6px; left: -6px; border-right: 0; border-bottom: 0; border-radius: 10px 0 0 0; }
+.qr-card .corner.tr { top: -6px; right: -6px; border-left: 0; border-bottom: 0; border-radius: 0 10px 0 0; }
+.qr-card .corner.bl { bottom: -6px; left: -6px; border-right: 0; border-top: 0; border-radius: 0 0 0 10px; }
+.qr-card .corner.br { bottom: -6px; right: -6px; border-left: 0; border-top: 0; border-radius: 0 0 10px 0; }
+.qr-top { display: flex; align-items: center; gap: 10px; color: var(--safe); font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase; }
+.qr-top .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--safe); box-shadow: 0 0 10px var(--safe); animation: pulse 1.6s infinite; }
+.qr-plate { position: relative; background: #eef8fc; border-radius: 18px; padding: 10px; overflow: hidden; }
+.qr-plate svg { display: block; width: min(360px, 40vh); height: auto; }
+.qr-dots { fill: #071426; }
+.qr-eyes { color: #0b6e8a; fill: #0b6e8a; }
+.qr-logo-bg { fill: #eef8fc; }
+.qr-shield { fill: #071426; }
+.qr-eye-lid { fill: #eef8fc; }
+.qr-pupil { fill: #0b9cc0; }
+.qr-scan {
+  position: absolute; left: 6%; right: 6%; height: 2px; top: 0; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, rgba(11, 156, 192, 0.85), transparent);
+  box-shadow: 0 0 12px rgba(11, 156, 192, 0.8);
+  animation: qrscan 2.6s ease-in-out infinite;
+}
+@keyframes qrscan { 0%, 100% { top: 4%; } 50% { top: 95%; } }
+.qr-url { color: var(--muted); font-size: 13px; white-space: nowrap; letter-spacing: 0.02em; }
 
 /* ── matrix ────────────────────────────────── */
 .matrix table { border-collapse: separate; border-spacing: 0; font-size: clamp(17px, 1.3vw, 23px); }
@@ -271,9 +295,10 @@ body:has(.st-outro.active) #ui::before {
 }
 
 /* ── titles assemble word by word ─────────── */
-.title { perspective: 600px; }
-.title .w { display: inline-block; overflow: hidden; vertical-align: top; padding: 0 0.02em 0.12em; margin-bottom: -0.12em; }
-.title .wi { display: inline-block; transform-origin: 50% 100%; will-change: transform; }
+.title .w { display: inline-block; }
+.title .wi { display: inline-block; will-change: transform, opacity; }
+.kicker .cursor { color: var(--safe); margin-left: 2px; animation: blink 0.5s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
 
 /* centre panels never run under the side scenery */
 .panel.center { width: min(1180px, 78vw); }

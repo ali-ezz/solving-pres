@@ -53,13 +53,54 @@ function fingerprintPanel(host, st) {
 }
 
 // ── QR code for the audience ────────────────────────────────
+// Drawn by hand from the QR matrix: soft rounded modules, rounded "eyes" and a shield
+// logo in the middle. Error correction H keeps it readable with the logo.
+function qrSvg(text) {
+  const qr = QRCode.create(text, { errorCorrectionLevel: 'H' });
+  const n = qr.modules.size;
+  const dark = (x, y) => qr.modules.get(y, x);
+  const m = 2; // quiet zone, in modules
+  const total = n + m * 2;
+  const isEye = (x, y) => (x < 7 && y < 7) || (x >= n - 7 && y < 7) || (x < 7 && y >= n - 7);
+  // keep the centre clear for the logo
+  const logo = Math.round(n * 0.24) | 1;
+  const lo = (n - logo) / 2;
+  const inLogo = (x, y) => x >= lo - 0.5 && x < lo + logo - 0.5 && y >= lo - 0.5 && y < lo + logo - 0.5;
+
+  let dots = '';
+  for (let y = 0; y < n; y++) {
+    for (let x = 0; x < n; x++) {
+      if (!dark(x, y) || isEye(x, y) || inLogo(x, y)) continue;
+      dots += `<rect x="${x + m + 0.05}" y="${y + m + 0.05}" width="0.9" height="0.9" rx="0.3"/>`;
+    }
+  }
+  const eye = (x, y) => `
+    <rect x="${x + m + 0.5}" y="${y + m + 0.5}" width="6" height="6" rx="1.8" fill="none" stroke="currentColor" stroke-width="1"/>
+    <rect x="${x + m + 2}" y="${y + m + 2}" width="3" height="3" rx="0.9"/>`;
+  const c = m + n / 2;
+  const L = logo - 1;
+  return `
+  <svg viewBox="0 0 ${total} ${total}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="QR code: ${text}">
+    <g class="qr-dots">${dots}</g>
+    <g class="qr-eyes">${eye(0, 0)}${eye(n - 7, 0)}${eye(0, n - 7)}</g>
+    <g class="qr-logo" transform="translate(${c - L / 2} ${c - L / 2}) scale(${L / 24})">
+      <rect x="0" y="0" width="24" height="24" rx="6" class="qr-logo-bg"/>
+      <path d="M12 3.2 19 5.8v5.4c0 4.4-3 8-7 9.6-4-1.6-7-5.2-7-9.6V5.8z" class="qr-shield"/>
+      <path d="M7.6 12c1.3-2 2.8-3 4.4-3s3.1 1 4.4 3c-1.3 2-2.8 3-4.4 3s-3.1-1-4.4-3z" class="qr-eye-lid"/>
+      <circle cx="12" cy="12" r="1.45" class="qr-pupil"/>
+    </g>
+  </svg>`;
+}
+
 function audiencePanel(host, st, { config }) {
   const card = h('div', 'qr-card interactive');
   const url = config.testPageUrl;
-  card.innerHTML = `<div class="qr"></div><div class="qr-url mono">${url.replace(/^https?:\/\//, '')}</div>`;
+  card.innerHTML = `
+    <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+    <div class="qr-top mono"><span class="dot"></span>Scan me · fingerprint test</div>
+    <div class="qr-plate">${qrSvg(url)}<div class="qr-scan"></div></div>
+    <div class="qr-url mono">${url.replace(/^https?:\/\//, '')}</div>`;
   host.appendChild(card);
-  QRCode.toString(url, { type: 'svg', margin: 1, errorCorrectionLevel: 'M', color: { dark: '#04060cff', light: '#ffffffff' } })
-    .then((svg) => (card.querySelector('.qr').innerHTML = svg));
   return {};
 }
 

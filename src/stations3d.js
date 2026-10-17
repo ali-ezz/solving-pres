@@ -871,7 +871,12 @@ function heros(i) {
     };
     s.step = (k) => {
       const z = zones[k];
-      if (!z) return;
+      if (!z) {
+        // last point (100% local): the whole shield pulses once
+        sfx.impact();
+        gsap.fromTo(shield.group.scale, { x: 1.12, y: 1.12, z: 1.12 }, { x: 1, y: 1, z: 1, duration: 0.9, ease: 'elastic.out(1, 0.5)' });
+        return;
+      }
       sfx.blip(660 + k * 180);
       fade(z.material, 0.85, 0.6);
       gsap.fromTo(z.scale, { x: 1.25, y: 1.25, z: 1.25 }, { x: 1, y: 1, z: 1, duration: 0.8, ease: 'power3.out' });

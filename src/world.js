@@ -106,7 +106,7 @@ export function createWorld(canvas, labelHost) {
           rig.pos.z += Math.sin(Math.PI * t) * lift * 0.6;
           rig.look.lerpVectors(from.look, look, Math.min(1, t * 1.15));
           rig.film = from.film + (toFilm - from.film) * t;
-          rig.warp = Math.sin(Math.PI * t) ** 2;
+          rig.warp = Math.sin(Math.PI * t) ** 3;
         },
         onComplete: () => {
           rig.warp = 0;
@@ -147,7 +147,7 @@ export function createWorld(canvas, labelHost) {
     // camera keeps looking straight at it
     camera.filmOffset = rig.film;
     // a short field-of-view punch sells the speed of each flight
-    camera.fov = 45 + rig.warp * 12;
+    camera.fov = 45 + rig.warp * 9;
     camera.updateProjectionMatrix();
     streaks.update(dt, rig.warp);
     bloom.strength = 0.95 + rig.warp * 0.45;
@@ -192,7 +192,7 @@ function addWarpStreaks(camera) {
   camera.add(lines);
   return {
     update(dt, warp) {
-      mat.opacity = warp * 0.55;
+      mat.opacity = warp * 0.42;
       lines.visible = warp > 0.01;
       if (!lines.visible) return;
       seeds.forEach((q, i) => {
