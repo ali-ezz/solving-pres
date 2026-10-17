@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#04060c" />
+    <title>Who are you? · Fingerprint test</title>
+  </head>
+  <body>
+    <main class="fp-page">
+      <header>
+        <div class="kicker">Fingerprint test</div>
+        <h1>This is what any website<br />knows about you.</h1>
+        <p class="lead">Read silently from your browser in about two seconds — no login, no cookies, no permission asked.</p>
+      </header>
+
+      <section class="id-card">
+        <div class="id-label">Your fingerprint ID</div>
+        <div class="id mono" id="fp-id">····-····</div>
+        <div class="verdict" id="fp-verdict">Reading your browser…</div>
+        <div class="changed mono" id="fp-changed"></div>
+        <button class="reload" id="fp-reload">Reload &amp; test again</button>
+      </section>
+
+      <section class="checks">
+        <div class="check" id="c-canvas"><b>Canvas fingerprint</b><span>…</span></div>
+        <div class="check" id="c-webrtc"><b>WebRTC IP leak</b><span>…</span></div>
+        <div class="check" id="c-cookies"><b>Cookies readable by scripts</b><span>…</span></div>
+      </section>
+
+      <section>
+        <h2>What your browser gave away</h2>
+        <div class="rows" id="fp-rows"></div>
+      </section>
+
+      <section class="explain">
+        <h2>How to read this</h2>
+        <p><b>Same ID after reloading?</b> Then any site can recognise you again — even in incognito, even after clearing cookies.</p>
+        <p><b>With Heros Shell</b> the canvas gets random noise, so the ID changes on every visit, and WebRTC can no longer reveal your IP.</p>
+        <p class="small">Nothing on this page is stored or uploaded. The only network request is the WebRTC test itself.</p>
+      </section>
+    </main>
+    <script type="module" src="/src/fp-main.js"></script>
+  </body>
+</html>

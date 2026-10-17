@@ -1,0 +1,210 @@
+// Interactive DOM panels that sit on top of specific stations.
+// Each builder returns an optional controller:
+//   { onEnter(), hasMore(), advance(), revealAll() }
+import gsap from 'gsap';
+import QRCode from 'qrcode';
+import { collect, webrtcIPs, maskIP } from './fingerprint.js';
+import * as sfx from './audio.js';
+
+const h = (tag, cls, html = '') => {
+  const el = document.createElement(tag);
+  if (cls) el.className = cls;
+  el.innerHTML = html;
+  return el;
+};
+
+// ── fingerprint card (live data from this laptop) ───────────
+function fingerprintPanel(host, st) {
+  const card = h('div', 'fp-card interactive');
+  card.innerHTML = '<div class="fp-rows"></div>';
+  host.appendChild(card);
+  const rowsEl = card.querySelector('.fp-rows');
+  let loaded = false;
+
+  const row = (k, v, cls = '') =>
+    `<div class="fp-row ${cls}"><span class="k">${k}</span><span class="v">${v}</span></div>`;
+
+  async function load() {
+    if (loaded) return;
+    loaded = true;
+    const fp = await collect();
+    st.setId?.(fp.id);
+    rowsEl.innerHTML = [
+      row('Browser', `${fp.browser} · ${fp.os}`),
+      row('Graphics card', fp.gpu),
+      row('Screen', fp.screen),
+      row('Time zone', fp.timezone),
+      row('CPU cores', fp.cores),
+      row('Fonts found', `${fp.fonts.length} of 48 tested`),
+      row('Canvas hash', `<span class="mono">${fp.canvas}</span>`),
+      row('Your IP (WebRTC)', '<span class="mono muted">checking…</span>', 'ip'),
+    ].join('');
+    gsap.from(rowsEl.children, { opacity: 0, x: -16, duration: 0.5, stagger: 0.09, ease: 'power2.out' });
+    rowsEl.querySelectorAll('.fp-row').forEach((_, k) => setTimeout(() => sfx.blip(700 + k * 40), k * 90));
+    const rtc = await webrtcIPs();
+    const ipEl = rowsEl.querySelector('.ip .v');
+    if (rtc.status === 'leaked') {
+      ipEl.innerHTML = `<span class="mono threat">${rtc.ips.map(maskIP).join(', ')}</span>`;
+    } else {
+      ipEl.innerHTML = `<span class="mono safe">${rtc.status === 'blocked' ? 'blocked' : 'not exposed'}</span>`;
+    }
+  }
+  return { onEnter: load };
+}
+
+// ── QR code for the audience ────────────────────────────────
+function audiencePanel(host, st, { config }) {
+  const card = h('div', 'qr-card interactive');
+  const url = config.testPageUrl;
+  card.innerHTML = `<div class="qr"></div><div class="qr-url mono">${url.replace(/^https?:\/\//, '')}</div>`;
+  host.appendChild(card);
+  QRCode.toString(url, { type: 'svg', margin: 1, errorCorrectionLevel: 'M', color: { dark: '#04060cff', light: '#ffffffff' } })
+    .then((svg) => (card.querySelector('.qr').innerHTML = svg));
+  return {};
+}
+
+// ── decision matrix ─────────────────────────────────────────
+function matrixPanel(host, st, { matrix }) {
+  const glyph = ['✗', '~', '✓'];
+  const tone = ['no', 'part', 'yes'];
+  const wrap = h('div', 'matrix interactive');
+  const max = matrix.criteria.length * 2;
+  wrap.innerHTML = `
+    <table>
+      <thead><tr><th></th>${matrix.options
+        .map((o, j) => `<th><button class="opt ${o.hero ? 'hero' : ''}" data-j="${j}">${o.name}</button></th>`)
+        .join('')}</tr></thead>
+      <tbody>${matrix.criteria
+        .map((c, i) => `<tr><td class="crit">${c}</td>${matrix.options
+          .map((o, j) => `<td class="cell" data-j="${j}"><span class="g ${tone[o.scores[i]]}">${glyph[o.scores[i]]}</span></td>`)
+          .join('')}</tr>`)
+        .join('')}</tbody>
+      <tfoot><tr><td class="crit">Score</td>${matrix.options
+        .map((o, j) => `<td data-j="${j}"><div class="meter"><i></i></div><span class="total mono">–</span></td>`)
+        .join('')}</tr></tfoot>
+    </table>`;
+  host.appendChild(wrap);
+  const revealed = new Set();
+
+  function reveal(j, quick = false) {
+    if (revealed.has(j)) return;
+    revealed.add(j);
+    const o = matrix.options[j];
+    const total = o.scores.reduce((a, b) => a + b, 0);
+    wrap.querySelector(`.opt[data-j="${j}"]`).classList.add('on');
+    const cells = wrap.querySelectorAll(`.cell[data-j="${j}"] .g`);
+    const foot = wrap.querySelector(`tfoot td[data-j="${j}"]`);
+    if (quick) {
+      cells.forEach((c) => c.classList.add('show'));
+      foot.querySelector('i').style.width = `${(total / max) * 100}%`;
+      foot.querySelector('.total').textContent = `${total}/${max}`;
+      foot.classList.toggle('hero', !!o.hero);
+      return;
+    }
+    cells.forEach((c, i) => setTimeout(() => {
+      c.classList.add('show');
+      sfx.blip(o.scores[i] === 2 ? 1046 : o.scores[i] === 1 ? 784 : 392);
+    }, i * 140));
+    setTimeout(() => {
+      foot.querySelector('i').style.width = `${(total / max) * 100}%`;
+      const t = { v: 0 };
+      gsap.to(t, { v: total, duration: 0.6, onUpdate: () => (foot.querySelector('.total').textContent = `${Math.round(t.v)}/${max}`) });
+      foot.classList.toggle('hero', !!o.hero);
+      if (o.hero) sfx.impact();
+    }, matrix.criteria.length * 140 + 80);
+  }
+
+  wrap.addEventListener('click', (e) => {
+    const b = e.target.closest('.opt');
+    if (b) reveal(Number(b.dataset.j));
+  });
+
+  return {
+    hasMore: () => revealed.size < matrix.options.length,
+    advance: () => reveal(matrix.options.findIndex((_, j) => !revealed.has(j))),
+    revealAll: () => matrix.options.forEach((_, j) => reveal(j, true)),
+  };
+}
+
+// ── Nevai Hub switch board ──────────────────────────────────
+function hubPanel(host, st, { hub }) {
+  const board = h('div', 'hub interactive');
+  board.innerHTML = `
+    ${hub.domains.map((d, k) => `
+      <div class="hub-row" data-k="${k}">
+        <div class="hub-name">${d.name}</div>
+        <div class="hub-toggles">${d.examples
+          .map((ex) => `<button class="tg" aria-pressed="false"><span class="knob"></span><span class="tg-l">${ex}</span></button>`)
+          .join('')}</div>
+      </div>`).join('')}
+    <div class="hub-foot">
+      <button class="all">Enable all</button>
+      <span class="count mono"><b>0</b> on · ${hub.total} in Heros Shell</span>
+    </div>`;
+  host.appendChild(board);
+
+  const countEl = board.querySelector('.count b');
+  const update = () => {
+    let total = 0;
+    board.querySelectorAll('.hub-row').forEach((r, k) => {
+      const on = r.querySelectorAll('.tg[aria-pressed="true"]').length;
+      total += on;
+      st.setDomain?.(k, on / r.querySelectorAll('.tg').length);
+    });
+    countEl.textContent = total;
+  };
+  const flip = (btn, force) => {
+    const on = force ?? btn.getAttribute('aria-pressed') !== 'true';
+    if ((btn.getAttribute('aria-pressed') === 'true') === on) return;
+    btn.setAttribute('aria-pressed', String(on));
+    sfx.click(on);
+    update();
+  };
+  board.addEventListener('click', (e) => {
+    const tg = e.target.closest('.tg');
+    if (tg) return flip(tg);
+    if (e.target.closest('.all')) {
+      const all = [...board.querySelectorAll('.tg')];
+      const anyOff = all.some((b) => b.getAttribute('aria-pressed') !== 'true');
+      all.forEach((b, k) => setTimeout(() => flip(b, anyOff), k * 70));
+      board.querySelector('.all').textContent = anyOff ? 'Disable all' : 'Enable all';
+    }
+  });
+  return {};
+}
+
+// ── live demo: links + optional backup screenshots ──────────
+function demoPanel(host, st, { config }) {
+  const box = h('div', 'demo interactive');
+  box.innerHTML = `
+    <div class="demo-links">${config.demoLinks
+      .map((l) => `<a class="btn" href="${l.url}" target="_blank" rel="noopener">${l.label} ↗</a>`)
+      .join('')}</div>
+    <div class="backup" hidden>
+      <figure><img data-src="demo/chrome.png" alt=""><figcaption class="threat">Chrome alone</figcaption></figure>
+      <figure><img data-src="demo/heros.png" alt=""><figcaption class="safe">Chrome + Heros</figcaption></figure>
+    </div>`;
+  host.appendChild(box);
+  // backup screenshots: B toggles them; loaded only on demand, shown only if both exist
+  const backup = box.querySelector('.backup');
+  const imgs = [...backup.querySelectorAll('img')];
+  const load = () => Promise.all(imgs.map((img) => new Promise((ok, fail) => {
+    if (img.complete && img.naturalWidth) return ok();
+    img.onload = ok;
+    img.onerror = fail;
+    img.src = img.dataset.src;
+  })));
+  window.addEventListener('keydown', (e) => {
+    if (e.key.toLowerCase() !== 'b' || !st.active) return;
+    load().then(() => (backup.hidden = !backup.hidden), () => {});
+  });
+  return {};
+}
+
+export const panelBuilders = {
+  fingerprint: fingerprintPanel,
+  audience: audiencePanel,
+  matrix: matrixPanel,
+  hub: hubPanel,
+  demo: demoPanel,
+};
