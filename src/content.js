@@ -21,6 +21,8 @@ export const config = {
 
 // Each station = one stop of the camera in the 3D world.
 // `items` with `step: true` are revealed one at a time with → / Space.
+// A station with `beats` shows its beats one after another, in the same place:
+// each beat has its own title, sub, items and footnote.
 export const stations = [
   {
     id: 'intro',
@@ -32,58 +34,24 @@ export const stations = [
       'Pause. Let the line sit. Then: "Today: what the browser gives away, why it matters for all of us, and how to fix it — live."',
   },
   {
-    id: 'chromium',
+    id: 'problem',
     layout: 'left',
-    kicker: '01 · Define the problem',
+    kicker: '01 · The problem',
     title: 'Cyber security',
     sub: 'Protecting devices, networks and data from being stolen, damaged or misused.',
     items: [
-      { step: true, h: 'One engine runs most of the web.', p: 'Chrome, Edge, Brave, Opera, Vivaldi, Samsung Internet — all built on <b>Chromium</b>, Google’s open-source browser project.' },
-      { step: true, h: 'One weakness, billions of users.', p: 'A flaw in Chromium is a flaw in most browsers people use.' },
+      { step: true, h: 'Life runs in a browser', p: 'Banks, schools, hospitals, government — all through a web page.' },
+      { step: true, h: 'One engine, billions of users', p: 'Chrome, Edge, Brave, Opera and Vivaldi are all built on <b>Chromium</b>. One flaw reaches most of us.' },
+      { step: true, tone: 'threat', h: '2017 · WannaCry & Equifax', p: 'Ransomware cancelled NHS hospital operations. One unpatched web app exposed ~147 million people.' },
     ],
     notes:
-      'Chromium = the open-source project that Chrome and most other browsers are built on. So the browser is the front door for almost everyone.',
-  },
-  {
-    id: 'society',
-    layout: 'left',
-    kicker: '01 · Why it matters',
-    title: 'Life now runs<br>in a browser.',
-    items: [
-      { step: true, h: 'Banks, schools, hospitals', p: 'Most of daily life now passes through a web browser.' },
-      { step: true, tone: 'threat', h: '2017 · WannaCry', p: 'Ransomware disrupted hospitals across the UK’s NHS — appointments and operations were cancelled.' },
-      { step: true, tone: 'threat', h: '2017 · Equifax', p: 'One unpatched web application exposed the data of about 147 million people.' },
-    ],
-    notes:
-      'Cyber security is not an IT topic any more — it is public safety. WannaCry (May 2017) hit the NHS; Equifax (2017) was breached through an unpatched Apache Struts web app.',
-  },
-  {
-    id: 'fingerprint',
-    layout: 'left',
-    kicker: '02 · The problem, live',
-    title: 'Meet this laptop’s<br>fingerprint.',
-    sub: 'Read live, right now. No login. No cookies. Just the browser.',
-    footnote: 'Computed on this device. Nothing is stored or uploaded.',
-    notes:
-      'Point at the card. GPU, screen, fonts, time zone, canvas hash — together they form an ID that is almost unique. Any website can run this code silently. (Keep Heros OFF here so the real values show.)',
-  },
-  {
-    id: 'audience',
-    layout: 'left',
-    kicker: 'Your turn',
-    title: 'Now check yours.',
-    sub: 'Scan the code. Your phone shows what any website can learn about you — in two seconds.',
-    items: [
-      { h: 'Then reload the page.', p: 'Same ID again? That is exactly how sites recognise you — no cookies needed.' },
-    ],
-    notes:
-      'Give them ~30 seconds. Ask: "Who got the same ID after reloading?" — almost everyone. That is the problem.',
+      'Cyber security is public safety now. Chromium = the open-source project most browsers are built on, so the browser is everyone’s front door. WannaCry (May 2017) hit the UK’s NHS; Equifax (2017) was breached through an unpatched Apache Struts web app.',
   },
   {
     id: 'threats',
     layout: 'left',
-    kicker: '02 · Gather the facts',
-    title: 'Four ways you are watched',
+    kicker: '02 · How you are watched',
+    title: 'Four ways<br>you are watched',
     sub: 'Hacking is not only breaking in. Often it is quietly watching.',
     items: [
       { step: true, tone: 'threat', h: 'Trackers', p: 'Hidden scripts that follow you from site to site.' },
@@ -92,55 +60,47 @@ export const stations = [
       { step: true, tone: 'threat', h: 'WebRTC leak', p: 'A video-call feature that can reveal your real IP — even behind a VPN.' },
     ],
     notes:
-      'Tracker = a script from another company embedded in the page. Fingerprint = what we just saw. Cookie = your login ticket. WebRTC = the feature that powers Meet/Zoom in the browser.',
+      'Tracker = a script from another company embedded in the page. Fingerprint = your device’s unique combination of settings. Cookie = your login ticket. WebRTC = the feature that powers Meet/Zoom in the browser.',
   },
   {
-    id: 'matrix',
-    layout: 'center',
-    kicker: '03 · Compare alternatives',
-    title: 'Same criteria.<br>Five options.',
-    sub: 'Browser-level protection — click an option to score it.',
-    footnote: '✓ protects  ·  ~ partly  ·  ✗ does not protect',
+    id: 'audience',
+    layout: 'left',
+    kicker: '03 · Test the problem',
+    title: 'Now check yours.',
+    sub: 'Scan the code. Your phone shows what any website can learn about you — in two seconds.',
+    items: [
+      { h: 'Then reload the page.', p: 'Same ID again? That is how sites recognise you — no cookies, no login.' },
+    ],
     notes:
-      'The decision matrix from the lecture: define criteria, score every alternative, then decide. Antivirus guards files, a VPN guards the network — neither watches inside the browser tab, where tracking happens.',
+      'Give them ~30 seconds. Ask: "Who got the same ID after reloading?" — almost everyone. That is the problem. (Keep Heros OFF on the laptop until the demo.)',
   },
   {
     id: 'heros',
     layout: 'left',
     kicker: '04 · Our solution',
-    title: 'Heros Shell',
-    sub: 'A browser shield built by Ahmed Abobakr (Nevai).',
-    items: [
-      { step: true, tone: 'safe', h: 'Perimeter', p: 'Every request is checked first. Trackers are dropped before they load.' },
-      { step: true, tone: 'safe', h: 'Sandbox', p: 'Untrusted scripts run isolated — no access to cookies, keystrokes or tokens.' },
-      { step: true, tone: 'safe', h: 'Barrier', p: 'Camera, mic and location need your consent. WebRTC leaks are blocked. Fingerprints get random noise.' },
-      { step: true, tone: 'safe', h: '100% local', p: 'Every decision runs on your device — no cloud, no telemetry.' },
+    beats: [
+      {
+        title: 'Heros Shell',
+        sub: 'A browser extension built by Ahmed Abobakr.',
+        items: [
+          { step: true, tone: 'safe', h: 'Perimeter', p: 'Every request is checked first. Trackers are dropped before they load.' },
+          { step: true, tone: 'safe', h: 'Sandbox', p: 'Untrusted scripts run isolated — no access to cookies, keystrokes or tokens.' },
+          { step: true, tone: 'safe', h: 'Barrier', p: 'Camera and mic need consent. WebRTC leaks are blocked. Fingerprints get random noise.' },
+          { step: true, tone: 'safe', h: '100% local', p: 'Every decision runs on your device — no cloud, no telemetry.' },
+        ],
+      },
+      {
+        title: '200+ controls.<br>One extension.',
+        sub: 'Every switch runs locally and applies instantly. Try one.',
+      },
     ],
     notes:
-      'Three zones: network → page scripts → hardware. And nothing is sent to a cloud to be judged — the protection itself never leaks your data. Watch the attacks bounce off.',
-  },
-  {
-    id: 'hub',
-    layout: 'left',
-    kicker: '04 · Our solution · Nevai Hub',
-    title: '200+ controls.<br>One dashboard.',
-    sub: 'Every switch runs locally and applies instantly. Try one.',
-    notes:
-      'Nevai Hub is the control centre for Heros Shell and the other Nevai modules. Flip a few switches, then "Enable all".',
-  },
-  {
-    id: 'results',
-    layout: 'center',
-    kicker: '05 · Test it',
-    title: 'We tested it.',
-    sub: 'Same laptop. Same test: EFF <b>Cover Your Tracks</b>.',
-    notes:
-      'Left: a popular combination — uBlock Origin Lite + Proton VPN. Trackers blocked, IP hidden… but the fingerprint is still unique: real GPU, real time zone, real cores. Right: Heros Shell — the fingerprint is randomized. Lesson: blocking trackers is not the same as stopping fingerprinting.',
+      'Three zones: network → page scripts → hardware, and nothing is sent to a cloud. Watch the attacks bounce off. Next press: the Heros dashboard — flip a few switches, then "Enable all".',
   },
   {
     id: 'demo',
     layout: 'center',
-    kicker: '05 · Prove it live',
+    kicker: '05 · Test the solution',
     title: 'Live demo',
     sub: 'Same test. Same laptop. <span class="threat">Chrome alone</span> vs <span class="safe">Chrome + Heros</span>.',
     items: [
@@ -149,33 +109,38 @@ export const stations = [
       { h: 'From the first moment', p: 'Protected before the page’s first script runs.' },
     ],
     notes:
-      'Switch to Chrome. Our test with Heros OFF: real Mac values, red "trackable". Heros ON: green "Protected from the first moment".',
+      'Switch to Chrome. Our test with Heros OFF: real values, red "trackable". Heros ON: green "Protected from the first moment". Backup: press B for screenshots.',
   },
   {
-    id: 'takeaways',
-    layout: 'left',
-    kicker: '06 · What you can do',
-    title: 'Four habits.<br>Big difference.',
-    items: [
-      { step: true, tone: 'safe', h: 'Update your browser', p: 'Most attacks use flaws that are already fixed.' },
-      { step: true, tone: 'safe', h: 'Block trackers', p: 'Use a tracker blocker or a protective extension.' },
-      { step: true, tone: 'safe', h: 'Hide your IP when it matters', p: 'Use a VPN on public Wi-Fi.' },
-      { step: true, tone: 'safe', h: 'Choose extensions carefully', p: 'An extension can read every page you open — install only ones you trust.' },
+    id: 'compare',
+    layout: 'center',
+    kicker: '06 · Compare & measure',
+    beats: [
+      {
+        title: 'Same criteria.<br>Five options.',
+        sub: 'Browser-level protection — click an option to score it.',
+        footnote: '✓ protects  ·  ~ partly  ·  ✗ does not protect',
+      },
+      {
+        title: 'Measured, not claimed.',
+        sub: 'Same laptop. Same test: EFF <b>Cover Your Tracks</b>.',
+      },
     ],
     notes:
-      'End on something the audience can do tonight. The last habit applies to Heros too — that honesty matters.',
+      'Decision matrix from the lecture: define criteria, score every alternative, then decide. Antivirus guards files, a VPN guards the network — neither works inside the browser tab. Next press: the measured results. uBlock Origin Lite + Proton VPN still leaves a unique fingerprint (real GPU, time zone, cores). Heros randomises it. Lesson: blocking trackers is not the same as stopping fingerprinting.',
   },
   {
     id: 'outro',
     layout: 'center',
     kicker: 'Cyber security is everyone’s job',
     title: 'Control your browser.<br>Reclaim your data.',
+    chips: ['Update your browser', 'Block trackers', 'VPN on public Wi-Fi', 'Trust your extensions'],
     sub: 'Thank you — questions?',
-    notes: 'Thank the audience. Invite questions.',
+    notes: 'One line of advice the audience can use tonight, then thank them and invite questions.',
   },
 ];
 
-// Decision matrix (station "matrix"): ✓ = 2, ~ = 1, ✗ = 0
+// Decision matrix (station "compare", first beat): ✓ = 2, ~ = 1, ✗ = 0
 export const matrix = {
   criteria: [
     'Blocks trackers & ads',
@@ -192,7 +157,7 @@ export const matrix = {
   ],
 };
 
-// "We tested it" (station "results") — measured with EFF Cover Your Tracks.
+// Test results (station "compare", second beat) — measured with EFF Cover Your Tracks.
 export const results = {
   source: 'EFF Cover Your Tracks · tested October 2026 on the same MacBook',
   runs: [
@@ -224,18 +189,13 @@ export const results = {
   lesson: 'Blocking trackers ≠ stopping fingerprinting.',
 };
 
-// Nevai Hub control domains (station "hub")
-export const hub = {
+// Heros control panel (station "heros", second beat)
+export const controls = {
   total: '200+',
   domains: [
     { name: 'Network', examples: ['Request filter', 'Tracker block', 'DNS control', 'Ad block'] },
     { name: 'Privacy', examples: ['Fingerprint guard', 'Cookie isolation', 'Referrer strip', 'URL cleaner'] },
-    { name: 'DOM', examples: ['Script sandbox', 'Event guard', 'Keystroke shield', 'Iframe lock'] },
+    { name: 'Scripts', examples: ['Script sandbox', 'Event guard', 'Keystroke shield', 'Iframe lock'] },
     { name: 'Hardware', examples: ['Canvas noise', 'WebRTC lock', 'Camera gate', 'Mic gate'] },
-  ],
-  modules: [
-    { name: 'YouTube helper', desc: 'Strips tracking, blocks ads' },
-    { name: 'Clipboard vault', desc: 'Encrypted on your device' },
-    { name: 'Local radio', desc: 'Zero telemetry' },
   ],
 };

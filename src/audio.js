@@ -71,13 +71,13 @@ export function whoosh(duration = 1.3) {
   src.buffer = noiseBuffer(duration + 0.2);
   const bp = ctx.createBiquadFilter();
   bp.type = 'bandpass';
-  bp.Q.value = 1.4;
+  bp.Q.value = 0.9;
   bp.frequency.setValueAtTime(220, t);
-  bp.frequency.exponentialRampToValueAtTime(1800, t + duration * 0.45);
+  bp.frequency.exponentialRampToValueAtTime(1000, t + duration * 0.45);
   bp.frequency.exponentialRampToValueAtTime(300, t + duration);
   const g = ctx.createGain();
   g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(0.32, t + duration * 0.4);
+  g.gain.exponentialRampToValueAtTime(0.14, t + duration * 0.4);
   g.gain.exponentialRampToValueAtTime(0.0001, t + duration);
   src.connect(bp).connect(g).connect(master);
   src.start(t);

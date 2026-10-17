@@ -23,16 +23,13 @@ document.querySelector('.start-kicker').textContent = config.topic;
 document.querySelector('.start-title').textContent = config.title;
 document.querySelector('.start-names').textContent = config.presenters.join('  ·  ');
 
-// Wrap every word of a title in two spans so it can rise into place.
+// Split a title into lines so each line can rise into place.
 // Titles are plain text with optional <br> line breaks.
-const splitWords = (html) =>
-  html
-    .split(/<br\s*\/?>/i)
-    .map((line) => line.trim().split(/\s+/).map((w) => `<span class="w"><span class="wi">${w}</span></span>`).join(' '))
-    .join('<br>');
+const splitLines = (html) =>
+  html.split(/<br\s*\/?>/i).map((line) => `<span class="ln">${line.trim()}</span>`).join('');
 
 // Type a line of text out, left to right, with a block cursor.
-function typeOut(el, text, { duration = 0.6, delay = 0 } = {}) {
+function typeOut(el, text, { duration = 0.4, delay = 0 } = {}) {
   const state = { n: 0 };
   el.textContent = '';
   return gsap.to(state, {
@@ -45,56 +42,109 @@ function typeOut(el, text, { duration = 0.6, delay = 0 } = {}) {
   });
 }
 
-const world = createWorld(document.getElementById('world'), document.getElementById('labels'));
+const world = createWorld(document.getElementById('world'), document.getElementById('labels'), document.getElementById('scene3d'));
 const stations = createStations(world, content);
 const ui = document.getElementById('ui');
+
+// the parts of a beat that fade in after its title
+const REST = ':scope > .sub, :scope > .items, :scope > .chips, :scope > .extra, :scope > .footnote';
 
 // ── build one text panel per station ────────────────────────
 const panels = data.map((d, i) => {
   const el = document.createElement('section');
   el.className = `panel ${d.layout === 'center' ? 'center' : 'left'} st-${d.id}`;
-  const items = (d.items || [])
-    .map((it) => `<li class="item ${it.step ? 'step' : ''} ${it.tone || ''}"><b>${it.h}</b><span>${it.p}</span></li>`)
-    .join('');
-  el.innerHTML = `
-    <div class="kicker">${d.kicker || ''}</div>
-    <h1 class="title">${splitWords(d.title)}</h1>
-    ${d.sub ? `<p class="sub">${d.sub}</p>` : ''}
-    ${items ? `<ul class="items">${items}</ul>` : ''}
-    <div class="extra"></div>
-    ${d.footnote ? `<p class="footnote">${d.footnote}</p>` : ''}`;
+  const beats = d.beats || [d];
+  el.innerHTML = `<div class="kicker">${d.kicker || ''}</div>${beats
+    .map((b, k) => {
+      const items = (b.items || [])
+        .map((it) => `<li class="item ${it.step ? 'step' : ''} ${it.tone || ''}"><b>${it.h}</b><span>${it.p}</span></li>`)
+        .join('');
+      const chips = (b.chips || []).map((c) => `<span>${c}</span>`).join('');
+      return `<div class="beat" data-b="${k}">
+        <h1 class="title">${splitLines(b.title)}</h1>
+        ${chips ? `<div class="chips">${chips}</div>` : ''}
+        ${b.sub ? `<p class="sub">${b.sub}</p>` : ''}
+        ${items ? `<ul class="items">${items}</ul>` : ''}
+        <div class="extra"></div>
+        ${b.footnote ? `<p class="footnote">${b.footnote}</p>` : ''}
+      </div>`;
+    })
+    .join('')}`;
   ui.appendChild(el);
 
   const st = stations[i];
-  const custom = panelBuilders[d.id]?.(el.querySelector('.extra'), st, content) || {};
-  const stepEls = [...el.querySelectorAll('.item.step')];
-  let shown = 0;
+  const beatEls = [...el.querySelectorAll('.beat')];
+  const extras = beatEls.map((b) => b.querySelector('.extra'));
+  // a builder returns one optional controller per beat: { onEnter, hasMore, advance, revealAll }
+  const custom = panelBuilders[d.id]?.(extras, st, content) || [];
+  const stepEls = beatEls.map((b) => [...b.querySelectorAll('.item.step')]);
+  const ctlOf = (b) => custom[b] || {};
+  let beat = 0;
+  let shown = 0; // step items shown in the current beat
+  let stepNo = 0; // 3D step counter across beats
 
-  // default controller: reveal `step` items one by one
+  const beatHasMore = () => {
+    const c = ctlOf(beat);
+    return c.hasMore ? c.hasMore() : shown < stepEls[beat].length;
+  };
+  const showStep = (quick) => {
+    const it = stepEls[beat][shown];
+    if (quick) gsap.set(it, { opacity: 1, y: 0 });
+    else gsap.to(it, { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' });
+    st.step(stepNo++);
+    shown += 1;
+  };
+  const setBeat = (n) => {
+    beat = n;
+    shown = 0;
+  };
+  const showBeat = (n) => beatEls.forEach((b, k) => b.classList.toggle('on', k === n));
+  // swap the text to the next beat in place, while the 3D set re-arranges itself
+  function nextBeat() {
+    const out = beatEls[beat];
+    const n = beat + 1;
+    setBeat(n);
+    gsap.to([el.querySelector('.kicker'), ...out.children], {
+      opacity: 0, y: -10, duration: 0.3, stagger: 0.03, ease: 'power2.in',
+      onComplete: () => {
+        showBeat(n);
+        showText(el, d.kicker, beatEls[n], 0);
+      },
+    });
+    st.beat?.(n);
+    if (st.beatCams?.[n]) world.flyTo(st.beatCams[n], { duration: 1.2 });
+    sfx.whoosh(0.9);
+  }
+
   const ctl = {
-    hasMore: () => (custom.hasMore ? custom.hasMore() : shown < stepEls.length),
+    hasMore: () => beatHasMore() || beat < beatEls.length - 1,
     advance() {
-      if (custom.advance) return custom.advance();
-      const it = stepEls[shown];
-      gsap.to(it, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.6, ease: 'power3.out' });
-      st.step(shown);
-      shown += 1;
+      if (!beatHasMore()) return nextBeat();
+      const c = ctlOf(beat);
+      if (c.advance) return c.advance();
+      showStep(false);
     },
     revealAll() {
-      if (custom.revealAll) return custom.revealAll();
-      while (shown < stepEls.length) {
-        gsap.set(stepEls[shown], { opacity: 1, y: 0, filter: 'blur(0px)' });
-        st.step(shown);
-        shown += 1;
+      for (let b = 0; b < beatEls.length; b++) {
+        if (b > 0) {
+          setBeat(b);
+          showBeat(b);
+          st.beat?.(b, true);
+        }
+        const c = ctlOf(b);
+        if (c.revealAll) c.revealAll();
+        while (shown < stepEls[b].length) showStep(true);
       }
     },
     reset() {
-      shown = 0;
-      gsap.set(stepEls, { opacity: 0, y: 18, filter: 'blur(6px)' });
+      setBeat(0);
+      showBeat(0);
+      stepNo = 0;
+      stepEls.flat().forEach((it) => gsap.set(it, { opacity: 0, y: 14 }));
+      custom.forEach((c) => c?.onEnter?.());
     },
-    onEnter: custom.onEnter,
   };
-  return { el, ctl, data: d };
+  return { el, ctl, data: d, beatEls };
 });
 
 // ── navigation ──────────────────────────────────────────────
@@ -102,34 +152,41 @@ let current = -1;
 let busy = false;
 let started = false;
 
-function showPanel(i, delay) {
-  const { el, data: d } = panels[i];
-  el.classList.add('active');
-  const kicker = el.querySelector('.kicker');
-  const title = el.querySelector('.title');
-  const words = title.querySelectorAll('.wi');
-  const rest = el.querySelectorAll('.sub, .items, .extra, .footnote');
-
-  gsap.set(title, { opacity: 1 });
-  gsap.fromTo(kicker, { opacity: 0 }, { opacity: 1, duration: 0.25, delay });
-  typeOut(kicker, d.kicker || '', { duration: Math.min(0.7, 0.02 * (d.kicker || '').length + 0.2), delay });
-  gsap.fromTo(words,
-    { y: 26, opacity: 0, filter: 'blur(8px)' },
-    { y: 0, opacity: 1, filter: 'blur(0px)', duration: 0.7, delay: delay + 0.05, stagger: 0.035, ease: 'power3.out', clearProps: 'filter' });
+function animateIn(beatEl, delay) {
+  const lines = beatEl.querySelectorAll('.title .ln');
+  const rest = beatEl.querySelectorAll(REST);
+  gsap.set(beatEl.querySelector('.title'), { opacity: 1, y: 0 });
+  gsap.fromTo(lines,
+    { y: 18, opacity: 0 },
+    { y: 0, opacity: 1, duration: 0.7, delay, stagger: 0.08, ease: 'power3.out', clearProps: 'transform' });
   gsap.fromTo(rest,
-    { opacity: 0, y: 24, filter: 'blur(8px)' },
+    { opacity: 0, y: 16 },
     {
-      opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.7, delay: delay + 0.25, stagger: 0.08, ease: 'power3.out',
+      opacity: 1, y: 0, duration: 0.6, delay: delay + 0.2, stagger: 0.07, ease: 'power3.out',
       // a leftover transform would make each part a positioning context
-      clearProps: 'transform,filter',
+      clearProps: 'transform',
     });
+}
+
+// kicker types in, then the title lines and the rest of the beat rise into place
+function showText(el, kickerText = '', beatEl, delay) {
+  const kicker = el.querySelector('.kicker');
+  gsap.fromTo(kicker, { opacity: 0, y: 0 }, { opacity: 1, duration: 0.2, delay });
+  typeOut(kicker, kickerText, { duration: Math.min(0.45, 0.012 * kickerText.length + 0.15), delay });
+  animateIn(beatEl, delay + 0.05);
+}
+
+function showPanel(i, delay) {
+  const { el, data: d, beatEls } = panels[i];
+  el.classList.add('active');
+  showText(el, d.kicker, beatEls.find((b) => b.classList.contains('on')), delay);
 }
 
 function hidePanel(i) {
   const { el } = panels[i];
-  const parts = el.querySelectorAll('.kicker, .title .wi, .sub, .items, .extra, .footnote');
+  const parts = el.querySelectorAll('.kicker, .beat.on > *');
   gsap.to(parts, {
-    opacity: 0, y: -14, filter: 'blur(6px)', duration: 0.3, stagger: 0.01, ease: 'power2.in',
+    opacity: 0, y: -10, duration: 0.25, stagger: 0.02, ease: 'power2.in',
     onComplete: () => el.classList.remove('active'),
   });
 }
@@ -153,13 +210,15 @@ async function go(i, { full = false, instant = false } = {}) {
   updateHud();
   history.replaceState(null, '', `#${i + 1}`);
 
-  const flight = world.flyTo(st.cam, { instant, duration: prev < 0 ? 2.4 : 1.5 });
-  if (!instant) sfx.whoosh(prev < 0 ? 2.2 : 1.4);
-  // text lands while the camera is still settling, so the screen is never empty
-  showPanel(i, instant ? 0 : prev < 0 ? 1.4 : 0.75);
-  setTimeout(() => st.showLabels(true), instant ? 0 : 900);
-  p.ctl.onEnter?.();
+  // coming back into a station with beats: land straight on its last beat
+  const cam = (full && st.beatCams?.[p.beatEls.length - 1]) || st.cam;
+  const flight = world.flyTo(cam, { instant, duration: prev < 0 ? 2.4 : 1.4 });
+  if (!instant) sfx.whoosh(prev < 0 ? 2.2 : 1.3);
+  stations.travel?.(prev, i, instant ? 0 : prev < 0 ? 2.4 : 1.4);
   if (full) p.ctl.revealAll();
+  // text lands while the camera is still settling, so the screen is never empty
+  showPanel(i, instant ? 0 : prev < 0 ? 1.4 : 0.8);
+  setTimeout(() => st.showLabels(true), instant ? 0 : 900);
   await flight;
   busy = false;
 }

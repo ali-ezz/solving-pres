@@ -3,7 +3,6 @@
 //   { onEnter(), hasMore(), advance(), revealAll() }
 import gsap from 'gsap';
 import QRCode from 'qrcode';
-import { collect, webrtcIPs, maskIP } from './fingerprint.js';
 import * as sfx from './audio.js';
 
 const h = (tag, cls, html = '') => {
@@ -12,45 +11,6 @@ const h = (tag, cls, html = '') => {
   el.innerHTML = html;
   return el;
 };
-
-// ── fingerprint card (live data from this laptop) ───────────
-function fingerprintPanel(host, st) {
-  const card = h('div', 'fp-card interactive');
-  card.innerHTML = '<div class="fp-rows"></div>';
-  host.appendChild(card);
-  const rowsEl = card.querySelector('.fp-rows');
-  let loaded = false;
-
-  const row = (k, v, cls = '') =>
-    `<div class="fp-row ${cls}"><span class="k">${k}</span><span class="v">${v}</span></div>`;
-
-  async function load() {
-    if (loaded) return;
-    loaded = true;
-    const fp = await collect();
-    st.setId?.(fp.id);
-    rowsEl.innerHTML = [
-      row('Browser', `${fp.browser} · ${fp.os}`),
-      row('Graphics card', fp.gpu),
-      row('Screen', fp.screen),
-      row('Time zone', fp.timezone),
-      row('CPU cores', fp.cores),
-      row('Fonts found', `${fp.fonts.length} of 48 tested`),
-      row('Canvas hash', `<span class="mono">${fp.canvas}</span>`),
-      row('Your IP (WebRTC)', '<span class="mono muted">checking…</span>', 'ip'),
-    ].join('');
-    gsap.from(rowsEl.children, { opacity: 0, x: -16, duration: 0.5, stagger: 0.09, ease: 'power2.out' });
-    rowsEl.querySelectorAll('.fp-row').forEach((_, k) => setTimeout(() => sfx.blip(700 + k * 40), k * 90));
-    const rtc = await webrtcIPs();
-    const ipEl = rowsEl.querySelector('.ip .v');
-    if (rtc.status === 'leaked') {
-      ipEl.innerHTML = `<span class="mono threat">${rtc.ips.map(maskIP).join(', ')}</span>`;
-    } else {
-      ipEl.innerHTML = `<span class="mono safe">${rtc.status === 'blocked' ? 'blocked' : 'not exposed'}</span>`;
-    }
-  }
-  return { onEnter: load };
-}
 
 // ── QR code for the audience ────────────────────────────────
 // Drawn by hand from the QR matrix: soft rounded modules, rounded "eyes" and a shield
@@ -92,16 +52,17 @@ function qrSvg(text) {
   </svg>`;
 }
 
-function audiencePanel(host, st, { config }) {
-  const card = h('div', 'qr-card interactive');
+// The card is not part of the text panel: the station stands it up in the 3D world.
+function audiencePanel(hosts, st, { config }) {
+  const card = h('div', 'qr-card');
   const url = config.testPageUrl;
   card.innerHTML = `
     <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
     <div class="qr-top mono"><span class="dot"></span>Scan me · fingerprint test</div>
     <div class="qr-plate">${qrSvg(url)}<div class="qr-scan"></div></div>
     <div class="qr-url mono">${url.replace(/^https?:\/\//, '')}</div>`;
-  host.appendChild(card);
-  return {};
+  st.mountCard(card);
+  return [];
 }
 
 // ── decision matrix ─────────────────────────────────────────
@@ -161,14 +122,24 @@ function matrixPanel(host, st, { matrix }) {
   });
 
   return {
+    onEnter() {
+      revealed.clear();
+      wrap.querySelectorAll('.opt').forEach((b) => b.classList.remove('on'));
+      wrap.querySelectorAll('.g').forEach((g) => g.classList.remove('show'));
+      wrap.querySelectorAll('tfoot td[data-j]').forEach((td) => {
+        td.classList.remove('hero');
+        td.querySelector('i').style.width = '0';
+        td.querySelector('.total').textContent = '–';
+      });
+    },
     hasMore: () => revealed.size < matrix.options.length,
     advance: () => reveal(matrix.options.findIndex((_, j) => !revealed.has(j))),
     revealAll: () => matrix.options.forEach((_, j) => reveal(j, true)),
   };
 }
 
-// ── Nevai Hub switch board ──────────────────────────────────
-function hubPanel(host, st, { hub }) {
+// ── Heros control panel ──────────────────────────────────
+function controlsPanel(host, st, { controls: hub }) {
   const board = h('div', 'hub interactive');
   board.innerHTML = `
     ${hub.domains.map((d, k) => `
@@ -180,7 +151,7 @@ function hubPanel(host, st, { hub }) {
       </div>`).join('')}
     <div class="hub-foot">
       <button class="all">Enable all</button>
-      <span class="count mono"><b>0</b> on · ${hub.total} in Heros Shell</span>
+      <span class="count mono"><b>0</b> on · ${hub.total} in Heros</span>
     </div>`;
   host.appendChild(board);
 
@@ -215,7 +186,7 @@ function hubPanel(host, st, { hub }) {
 }
 
 // ── live demo: links + optional backup screenshots ──────────
-function demoPanel(host, st, { config }) {
+function demoPanel([host], st, { config }) {
   const box = h('div', 'demo interactive');
   box.innerHTML = `
     <div class="demo-links">${config.demoLinks
@@ -239,7 +210,7 @@ function demoPanel(host, st, { config }) {
     if (e.key.toLowerCase() !== 'b' || !st.active) return;
     load().then(() => (backup.hidden = !backup.hidden), () => {});
   });
-  return {};
+  return [];
 }
 
 // ── "We tested it": two measured results side by side ─────
@@ -298,10 +269,13 @@ function resultsPanel(host, st, { results }) {
 }
 
 export const panelBuilders = {
-  results: resultsPanel,
-  fingerprint: fingerprintPanel,
   audience: audiencePanel,
-  matrix: matrixPanel,
-  hub: hubPanel,
+  // first beat: the three zones (plain step items); second beat: the switch board
+  heros: ([, controlsHost], st, content) => [null, controlsPanel(controlsHost, st, content)],
   demo: demoPanel,
+  // first beat: the decision matrix; second beat: the measured results
+  compare: ([matrixHost, resultsHost], st, content) => [
+    matrixPanel(matrixHost, st, content),
+    resultsPanel(resultsHost, st, content),
+  ],
 };

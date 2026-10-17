@@ -28,6 +28,7 @@ html, body {
 
 #world { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 #labels { position: fixed; inset: 0; pointer-events: none; }
+#scene3d { position: fixed; inset: 0; pointer-events: none; }
 #ui { position: fixed; inset: 0; pointer-events: none; }
 
 /* soft vignette so text always reads */
@@ -66,7 +67,11 @@ body:has(.panel.center.active) #ui::before {
   display: flex; flex-direction: column; gap: 22px;
 }
 .panel.active { visibility: visible; }
-.panel > * { opacity: 0; }
+.panel .kicker, .beat > * { opacity: 0; }
+/* one beat of a station is visible at a time */
+.beat { display: none; flex-direction: column; gap: 22px; }
+.beat.on { display: flex; }
+.panel.center .beat { align-items: center; }
 .panel.left {
   left: 7vw; top: 50%; transform: translateY(-50%);
   width: min(640px, 40vw);
@@ -114,40 +119,26 @@ body:has(.panel.center.active) #ui::before {
 /* the text layer ignores the mouse (so clicks reach navigation), except real controls */
 .panel.active .interactive { pointer-events: auto; }
 
-/* ── fingerprint card ──────────────────────── */
-.fp-card {
-  background: var(--glass); border: 1px solid var(--line); border-radius: 14px;
-  padding: 14px 18px; backdrop-filter: blur(10px);
-}
-.fp-rows { display: flex; flex-direction: column; min-height: 40px; }
-.fp-row {
-  display: grid; grid-template-columns: 150px 1fr; gap: 14px; align-items: baseline;
-  padding: 7px 0; border-bottom: 1px solid rgba(120, 170, 255, 0.08); font-size: 16px;
-}
-.fp-row:last-child { border-bottom: 0; }
-.fp-row .k { color: var(--muted); font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
-.fp-row .v { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
 /* ── QR ────────────────────────────────────── */
-/* the QR floats in the middle of the phone ring (right side of the screen) */
-.st-audience .qr-card { position: absolute; left: 62vw; top: calc(50% + 2vh); transform: translate(-50%, -50%); }
+/* the card stands in the 3D world (CSS3DRenderer); it fades in at its station */
 .qr-card {
+  opacity: 0; transition: opacity 0.9s;
   display: flex; flex-direction: column; align-items: center; gap: 14px;
   padding: 22px 22px 18px; border-radius: 24px;
   background: linear-gradient(160deg, rgba(14, 30, 58, 0.92), rgba(6, 12, 26, 0.92));
   border: 1px solid rgba(55, 226, 255, 0.35);
   box-shadow: 0 0 0 1px rgba(55, 226, 255, 0.08) inset, 0 0 70px rgba(55, 226, 255, 0.28), 0 30px 80px rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(12px);
 }
+.qr-card.on { opacity: 1; }
 .qr-card .corner { position: absolute; width: 26px; height: 26px; border: 3px solid var(--safe); filter: drop-shadow(0 0 6px var(--safe)); }
 .qr-card .corner.tl { top: -6px; left: -6px; border-right: 0; border-bottom: 0; border-radius: 10px 0 0 0; }
 .qr-card .corner.tr { top: -6px; right: -6px; border-left: 0; border-bottom: 0; border-radius: 0 10px 0 0; }
 .qr-card .corner.bl { bottom: -6px; left: -6px; border-right: 0; border-top: 0; border-radius: 0 0 0 10px; }
 .qr-card .corner.br { bottom: -6px; right: -6px; border-left: 0; border-top: 0; border-radius: 0 0 10px 0; }
-.qr-top { display: flex; align-items: center; gap: 10px; color: var(--safe); font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase; }
+.qr-top { display: flex; align-items: center; gap: 10px; color: var(--safe); font-size: 17px; letter-spacing: 0.22em; text-transform: uppercase; }
 .qr-top .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--safe); box-shadow: 0 0 10px var(--safe); animation: pulse 1.6s infinite; }
 .qr-plate { position: relative; background: #eef8fc; border-radius: 18px; padding: 10px; overflow: hidden; }
-.qr-plate svg { display: block; width: min(360px, 40vh); height: auto; }
+.qr-plate svg { display: block; width: 400px; height: auto; }
 .qr-dots { fill: #071426; }
 .qr-eyes { color: #0b6e8a; fill: #0b6e8a; }
 .qr-logo-bg { fill: #eef8fc; }
@@ -161,7 +152,7 @@ body:has(.panel.center.active) #ui::before {
   animation: qrscan 2.6s ease-in-out infinite;
 }
 @keyframes qrscan { 0%, 100% { top: 4%; } 50% { top: 95%; } }
-.qr-url { color: var(--muted); font-size: 13px; white-space: nowrap; letter-spacing: 0.02em; }
+.qr-url { color: var(--muted); font-size: 17px; white-space: nowrap; letter-spacing: 0.02em; }
 
 /* ── matrix ────────────────────────────────── */
 .matrix table { border-collapse: separate; border-spacing: 0; font-size: clamp(17px, 1.3vw, 23px); }
@@ -285,7 +276,6 @@ kbd { font-family: var(--mono); border: 1px solid var(--line); border-radius: 5p
 /* smaller laptops */
 @media (max-height: 820px) {
   .panel { gap: 16px; }
-  .fp-row { padding: 5px 0; font-size: 14px; }
   .item { padding: 8px 0 8px 18px; }
 }
 
@@ -294,9 +284,8 @@ body:has(.st-outro.active) #ui::before {
   background: radial-gradient(ellipse 40% 30% at 50% 45%, rgba(4, 6, 12, 0.6) 0%, rgba(4, 6, 12, 0.15) 70%, transparent 100%);
 }
 
-/* ── titles assemble word by word ─────────── */
-.title .w { display: inline-block; }
-.title .wi { display: inline-block; will-change: transform, opacity; }
+/* ── titles rise line by line ─────────────── */
+.title .ln { display: block; }
 .kicker .cursor { color: var(--safe); margin-left: 2px; animation: blink 0.5s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
 
@@ -331,8 +320,9 @@ body:has(.st-outro.active) #ui::before {
 .start-names { color: var(--muted); font-size: 18px; letter-spacing: 0.04em; }
 
 /* dense centre stations: a smaller title leaves room for the table / cards */
-.st-matrix .title, .st-results .title { font-size: clamp(40px, 3.9vw, 72px); }
-.st-matrix.panel, .st-results.panel { gap: 16px; top: 47%; }
+.st-compare .title { font-size: clamp(40px, 3.9vw, 72px); }
+.st-compare.panel, .st-compare .beat { gap: 16px; }
+.st-compare.panel { top: 47%; }
 .matrix table { width: min(1240px, 84vw); }
 .matrix td.crit { white-space: nowrap; }
 .matrix .opt { white-space: nowrap; min-width: 0; padding: 10px 16px; }
@@ -348,8 +338,25 @@ body:has(.st-outro.active) #ui::before {
 .hub-toggles { gap: 6px; }
 .tg { padding: 6px 10px; }
 @media (max-height: 820px) {
-  .st-hub .sub { display: none; }
+  .st-heros .beat[data-b='1'] .sub { display: none; }
   .tg { padding: 4px 8px; font-size: 13px; }
-  .st-matrix .title, .st-results .title { font-size: clamp(34px, 3.4vw, 56px); }
+  .st-compare .title { font-size: clamp(34px, 3.4vw, 56px); }
   .matrix th, .matrix td { padding: 7px 10px; }
+}
+
+/* ── one glass treatment for every interactive board ── */
+.matrix, .hub {
+  background: var(--glass); border: 1px solid var(--line); border-radius: 18px;
+  backdrop-filter: blur(10px); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+.matrix { padding: 8px 14px; }
+.hub { padding: 16px 18px; }
+.result { border-radius: 18px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35); }
+
+/* ── closing advice: one line of chips ──── */
+.chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.chips span {
+  font: 500 clamp(15px, 1.1vw, 19px) var(--body); color: var(--text);
+  padding: 8px 16px; border-radius: 999px; border: 1px solid rgba(55, 226, 255, 0.4);
+  background: rgba(55, 226, 255, 0.07);
 }

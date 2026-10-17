@@ -2,8 +2,19 @@
 
 Problem Solving course · Cyber security in a connected society · by Ahmed Abobakr & Ali Ezz
 
-One continuous 3D world: every "slide" is a station, and moving on is a camera flight.
-Everything is drawn in code (no AI images) and all sounds are synthesized live.
+One continuous 3D world: every "slide" is a station, and moving on is a camera glide along a
+glowing road. Everything is drawn in code (no AI images) and all sounds are synthesized live.
+
+The story, 8 stations (about 8–10 minutes):
+
+1. **Your browser knows who you are** — the hook
+2. **The problem** — what cyber security is, why it matters (Chromium, WannaCry, Equifax)
+3. **Four ways you are watched** — trackers, fingerprinting, cookie theft, WebRTC leaks
+4. **Test the problem** — the audience scans the QR code and sees their own fingerprint
+5. **Our solution: Heros Shell** — the three protection zones, then its control panel
+6. **Test the solution** — live demo in Chrome: Chrome alone vs Chrome + Heros
+7. **Compare & measure** — decision matrix, then the measured EFF results
+8. **Close** — control your browser, reclaim your data; questions
 
 ## Run it
 
@@ -20,7 +31,7 @@ The offline build is the USB-stick backup: double-click `dist-offline/index.html
 
 | Key | Action |
 |---|---|
-| `→` `Space` `PageDown` / click right half | next step, then next station |
+| `→` `Space` `PageDown` / click right half | next step (or the station's next part), then next station |
 | `←` `PageUp` / click left half | previous station |
 | `F` | fullscreen |
 | `N` | speaker notes + timer |
@@ -35,11 +46,11 @@ Add `#5` to the URL to jump straight to station 5.
 ## Edit the words
 
 All text lives in **`src/content.js`**: titles, bullet points, speaker notes, the decision
-matrix scores, the Nevai Hub switches and the presenter names. No other file needs touching.
+matrix scores, the test results, the Heros switches and the presenter names. No other file needs touching.
 
 ## The fingerprint test page (`fp.html`)
 
-The QR code on station 3 opens this page. It reads the same things real trackers read
+The QR code on station 4 opens this page. It reads the same things real trackers read
 (canvas, audio, GPU, fonts, screen, WebRTC IP) and remembers the last result, so a reload shows
 whether the ID stayed the same (trackable) or changed (protected) — and which value changed.
 Use it to test Heros Shell: with Heros on, the canvas hash should change on reload and WebRTC
@@ -61,9 +72,9 @@ On the demo station press `B` to show them side by side if the live demo fails.
 
 ## Code map
 
-- `src/world.js` — renderer, glow, floor grid, stars, camera flights + mouse parallax
+- `src/world.js` — renderer, glow, sky, floor grid, stars, camera glides + mouse parallax
 - `src/stations3d.js` — the 3D scene of each station
-- `src/panels.js` — interactive overlays (fingerprint card, QR, decision matrix, hub switches, demo)
+- `src/panels.js` — interactive overlays (QR card placed in 3D, decision matrix, test results, Heros switches, demo)
 - `src/fingerprint.js` — fingerprint collection shared by the deck and `fp.html`
 - `src/audio.js` — synthesized ambience and effects
 - `src/main.js` — navigation, text animation, HUD, keys

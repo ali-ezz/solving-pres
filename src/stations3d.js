@@ -1,11 +1,12 @@
 // The 3D "set pieces" — one per station — built only from code primitives.
 import * as THREE from 'three';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
 import gsap from 'gsap';
 import { COLORS } from './world.js';
 import * as sfx from './audio.js';
 
-const SPACING = 52;
+const SPACING = 34;
 const CAM_OFFSET = new THREE.Vector3(0, 1.2, 21);
 
 // ── small building blocks ───────────────────────────────────
@@ -135,9 +136,11 @@ function station(index, build, { camOffset = CAM_OFFSET, lookOffset = new THREE.
       look: anchor.clone().add(lookOffset),
       frame: 'left',
     },
+    beatCams: [],
     enter() {},
     leave() {},
     step() {},
+    beat() {},
     update() {},
     addLabel(obj) {
       s.labels.push(obj);
@@ -148,8 +151,27 @@ function station(index, build, { camOffset = CAM_OFFSET, lookOffset = new THREE.
     },
   };
   build(s, group);
+  // hand-off: the set we leave settles back a little, the one we reach grows into place
+  const enter = s.enter;
+  const leave = s.leave;
+  s.enter = () => {
+    gsap.to(group.scale, { x: 1, y: 1, z: 1, duration: 1.4, ease: 'power3.out' });
+    enter();
+  };
+  s.leave = () => {
+    gsap.to(group.scale, { x: 0.9, y: 0.9, z: 0.9, duration: 1.2, ease: 'power2.inOut' });
+    leave();
+  };
+  group.scale.setScalar(0.9);
   return s;
 }
+
+// a camera pose relative to a station
+const camAt = (s, offset, look = new THREE.Vector3()) => ({
+  pos: s.anchor.clone().add(offset),
+  look: s.anchor.clone().add(look),
+  frame: s.cam.frame,
+});
 
 // ── 1 · intro: a browser that watches you ───────────────────
 function intro(i) {
@@ -244,36 +266,8 @@ function makeFingerprint({ color = COLORS.safe, ridges = 26, spacing = 0.19, see
   };
 }
 
-// ── fingerprint: this laptop's ID ───────────────────────────
-function fingerprint(i) {
-  return station(i, (s, g) => {
-    const fp = makeFingerprint();
-    g.add(fp.group);
-    const scan = new THREE.Mesh(new THREE.PlaneGeometry(7.4, 0.07), basic(COLORS.safe, 0.9));
-    g.add(scan);
-    const halo = new THREE.Mesh(new THREE.RingGeometry(6.2, 6.26, 128), basic(COLORS.safe, 0.35));
-    g.add(halo);
-
-    const idLabel = s.addLabel(label('<span class="mono">ID ····-····</span>', 'big'));
-    idLabel.position.set(0, 7, 0);
-    g.add(idLabel);
-    s.setId = (id) => {
-      idLabel.element.innerHTML = `<span class="mono">ID ${id}</span>`;
-    };
-
-    s.enter = () => fp.draw();
-    s.update = (t) => {
-      fp.group.rotation.y = Math.sin(t * 0.5) * 0.35;
-      fp.group.rotation.x = Math.sin(t * 0.37) * 0.12;
-      scan.position.set(0, Math.sin(t * 1.3) * 5.4, 0.3);
-      scan.material.opacity = 0.35 + 0.35 * Math.cos(t * 2.6);
-      halo.rotation.z = t * 0.1;
-    };
-  });
-}
-
-// ── society: a city that lives online ───────────────────────
-function society(i) {
+// ── 2 · the problem: a city that lives online, on one engine ─
+function problem(i) {
   return station(i, (s, g) => {
     const city = new THREE.Group();
     city.position.y = -5.2;
@@ -283,7 +277,7 @@ function society(i) {
     for (let x = -4; x <= 4; x++) {
       for (let z = -2; z <= 1; z++) {
         if (Math.abs(x) + Math.abs(z) > 5 || rand(0, 1) < 0.15) continue;
-        const h = rand(1.6, 6.5) * (1 - Math.abs(x) * 0.07);
+        const h = rand(1.6, 5.2) * (1 - Math.abs(x) * 0.07);
         // origin at the base so buildings grow up out of the ground
         const geo = new THREE.BoxGeometry(1.3, h, 1.3).translate(0, h / 2, 0);
         const b = new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat());
@@ -299,46 +293,70 @@ function society(i) {
     }
     // roof of a building in station space
     const roof = (b) => b.position.clone().add(city.position).add(new THREE.Vector3(0, b.userData.h, 0));
+    const pickB = () => buildings[Math.floor(rand(0, buildings.length))];
     // data arcs between buildings
-    const arcs = stream({
-      count: 50, color: COLORS.safe, size: 0.28, speed: 0.45, curve: 3,
-      from: () => roof(buildings[Math.floor(rand(0, buildings.length))]),
-      to: () => roof(buildings[Math.floor(rand(0, buildings.length))]),
-    });
+    const arcs = stream({ count: 50, color: COLORS.safe, size: 0.28, speed: 0.45, curve: 3, from: () => roof(pickB()), to: () => roof(pickB()) });
     g.add(arcs);
+
+    // Chromium: one engine above the whole city
+    const CORE = new THREE.Vector3(0, 3.4, -1);
+    const core = new THREE.Group();
+    core.position.copy(CORE);
+    const shell = new THREE.Mesh(new THREE.IcosahedronGeometry(1.2, 1), basic(COLORS.safe, 0.55, { wireframe: true }));
+    const inner = new THREE.Mesh(new THREE.SphereGeometry(0.45, 32, 16), basic(COLORS.safe, 0.9));
+    core.add(shell, inner);
+    g.add(core);
+    const coreLabel = s.addLabel(label('Chromium', 'big hidden'));
+    coreLabel.position.copy(CORE).add(new THREE.Vector3(0, 2, 0));
+    g.add(coreLabel);
+    const links = stream({ count: 60, color: COLORS.safe, size: 0.24, speed: 0.6, from: () => CORE.clone(), to: () => roof(pickB()) });
+    g.add(links);
+    const crack = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.04, 8, 96), basic(COLORS.threat, 0));
+    crack.position.copy(CORE);
+    g.add(crack);
 
     // the two real incidents: which buildings turn red
     const pick = (fx, fz) => buildings.reduce((best, b) =>
       (Math.hypot(b.userData.x - fx, b.userData.z - fz) < Math.hypot(best.userData.x - fx, best.userData.z - fz) ? b : best));
-    const hospital = pick(-2, 0);
-    const company = pick(2.5, 0);
     const markers = [
-      [hospital, 'Hospitals · NHS'],
-      [company, '147M records'],
+      [pick(-3, 0), 'NHS hospitals'],
+      [pick(3, 0), '147M records'],
     ].map(([b, text]) => {
-      const l = s.addLabel(label(text, 'threat big hidden'));
+      const l = s.addLabel(label(text, 'threat hidden'));
       l.position.copy(roof(b)).add(new THREE.Vector3(0, 1, 0));
       g.add(l);
       const leak = stream({
         count: 18, color: COLORS.threat, size: 0.32, speed: 0.4,
         from: () => roof(b).add(new THREE.Vector3(rand(-0.4, 0.4), 0, 0)),
-        to: () => roof(b).add(new THREE.Vector3(rand(-2, 2), rand(4, 7), rand(-1, 1))),
+        to: () => roof(b).add(new THREE.Vector3(rand(-2, 2), rand(3, 5), rand(-1, 1))),
       });
       g.add(leak);
       return { b, l, leak };
     });
 
+    const tint = (c, color, d = 0.6) => {
+      const to = new THREE.Color(color);
+      gsap.to(c, { r: to.r, g: to.g, b: to.b, duration: d });
+    };
     const light = (b, color, opacity) => {
-      const c = new THREE.Color(color);
-      gsap.to(b.material.color, { r: c.r, g: c.g, b: c.b, duration: 0.6 });
-      gsap.to(b.userData.win.material.color, { r: c.r, g: c.g, b: c.b, duration: 0.6 });
+      tint(b.material.color, color);
+      tint(b.userData.win.material.color, color);
       gsap.to(b.userData.win.material, { opacity, duration: 0.6 });
     };
+    let broken = false;
 
     s.enter = () => {
       arcs.material.opacity = 0;
+      links.material.opacity = 0;
+      links.material.color.set(COLORS.safe);
+      broken = false;
+      gsap.killTweensOf(crack.scale);
+      core.scale.setScalar(0.001);
+      [inner.material.color, shell.material.color].forEach((c) => c.set(COLORS.safe));
+      coreLabel.element.classList.add('hidden');
       buildings.forEach((b) => {
         b.material.color.set(COLORS.dim);
+        b.userData.win.material.color.set(COLORS.safe);
         b.userData.win.material.opacity = 0;
         b.scale.y = 0.001;
         gsap.to(b.scale, { y: 1, duration: 1.2, delay: 0.4 + rand(0, 0.6), ease: 'power3.out' });
@@ -351,209 +369,110 @@ function society(i) {
     s.step = (k) => {
       if (k === 0) {
         sfx.blip(660);
-        buildings.forEach((b, n) => setTimeout(() => light(b, COLORS.safe, 0.05), n * 25));
+        buildings.forEach((b, n) => setTimeout(() => light(b, COLORS.safe, 0.06), n * 25));
         fade(arcs.material, 0.9, 0.8, 0.4);
-      } else if (markers[k - 1]) {
-        const m = markers[k - 1];
+      } else if (k === 1) {
+        sfx.impact();
+        gsap.to(core.scale, { x: 1, y: 1, z: 1, duration: 1.1, ease: 'back.out(1.8)' });
+        fade(arcs.material, 0.25, 0.6);
+        fade(links.material, 0.9, 0.8, 0.5);
+        coreLabel.element.classList.remove('hidden');
+      } else if (k === 2) {
         sfx.alarm();
-        light(m.b, COLORS.threat, 0.2);
-        m.l.element.classList.remove('hidden');
-        fade(m.leak.material, 0.95, 0.6, 0.2);
+        [inner.material.color, shell.material.color, links.material.color].forEach((c) => tint(c, COLORS.threat));
+        broken = true;
+        gsap.fromTo(crack.scale, { x: 0.7, y: 0.7, z: 0.7 }, { x: 1.5, y: 1.5, z: 1.5, duration: 1.4, repeat: -1, ease: 'power1.out' });
+        markers.forEach((m, n) => setTimeout(() => {
+          light(m.b, COLORS.threat, 0.22);
+          m.l.element.classList.remove('hidden');
+          fade(m.leak.material, 0.95, 0.6, 0.2);
+        }, 350 + n * 450));
       }
     };
     s.update = (t, dt) => {
       arcs.userData.update(dt);
+      links.userData.update(dt);
       markers.forEach((m) => m.leak.userData.update(dt));
+      shell.rotation.set(t * 0.2, t * 0.3, 0);
+      inner.scale.setScalar(1 + Math.sin(t * 2.2) * 0.05);
+      crack.lookAt(s.cam.pos);
+      crack.material.opacity = broken ? Math.max(0, (0.9 * (1.5 - crack.scale.x)) / 0.8) : 0;
       // sway the whole scene so labels and particles stay attached to their buildings
-      g.rotation.y = Math.sin(t * 0.15) * 0.12 - 0.1;
+      g.rotation.y = Math.sin(t * 0.15) * 0.1 - 0.08;
     };
-  }, { camOffset: new THREE.Vector3(0, 2.5, 22), lookOffset: new THREE.Vector3(0, -0.5, 0) });
+  }, { camOffset: new THREE.Vector3(0, 2.2, 25), lookOffset: new THREE.Vector3(0, -0.6, 0) });
 }
 
-// ── results: unique vs randomized fingerprint ───────────────
-function results(i) {
-  return station(i, (s, g) => {
-    const make = (x, color) => {
-      const fp = makeFingerprint({ color, ridges: 18, spacing: 0.17 });
-      fp.group.position.set(x, 1.5, -6);
-      fp.group.scale.setScalar(1.15);
-      g.add(fp.group);
-      return fp;
-    };
-    const unique = make(-11, COLORS.threat);
-    const random = make(11, COLORS.safe);
-    let jitterT = 0;
-    s.enter = () => {
-      unique.draw(0.6);
-      random.draw(0.9);
-    };
-    s.update = (t, dt) => {
-      unique.group.rotation.y = Math.sin(t * 0.4) * 0.25;
-      // the randomized one never holds still: ridges re-shuffle every beat
-      jitterT += dt;
-      if (jitterT > 0.45) {
-        jitterT = 0;
-        random.lines.forEach((l) => {
-          l.rotation.z = rand(-0.3, 0.3);
-          l.scale.setScalar(rand(0.92, 1.08));
-        });
-      }
-      random.group.rotation.y = Math.sin(t * 0.4 + 1) * 0.25;
-    };
-  });
-}
-
-// ── takeaways: four habits light up ─────────────────────────
-function takeaways(i) {
-  return station(i, (s, g) => {
-    const tiles = [0, 1, 2, 3].map((k) => {
-      const t = new THREE.Group();
-      t.position.set((k % 2 ? 2.6 : -2.6), (k < 2 ? 2.6 : -2.6), 0);
-      const hex = new THREE.Mesh(new THREE.CircleGeometry(2.2, 6), basic(COLORS.threat, 0.08, { side: THREE.DoubleSide }));
-      const edge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.CircleGeometry(2.2, 6)), new THREE.LineBasicMaterial({ color: COLORS.threat, transparent: true, opacity: 0.8 }));
-      // check mark
-      const check = new THREE.Mesh(
-        new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(-0.8, 0, 0.05), new THREE.Vector3(-0.2, -0.6, 0.05), new THREE.Vector3(0.9, 0.7, 0.05)], false, 'catmullrom', 0), 24, 0.09, 8),
-        basic(COLORS.safe, 0),
-      );
-      hex.rotation.z = edge.rotation.z = Math.PI / 6;
-      t.add(hex, edge, check);
-      t.userData = { hex, edge, check, on: false };
-      g.add(t);
-      return t;
-    });
-    const set = (t, on, quick) => {
-      const c = new THREE.Color(on ? COLORS.safe : COLORS.threat);
-      const d = quick ? 0 : 0.5;
-      gsap.to(t.userData.edge.material.color, { r: c.r, g: c.g, b: c.b, duration: d });
-      gsap.to(t.userData.hex.material.color, { r: c.r, g: c.g, b: c.b, duration: d });
-      gsap.to(t.userData.hex.material, { opacity: on ? 0.16 : 0.08, duration: d });
-      gsap.to(t.userData.check.material, { opacity: on ? 1 : 0, duration: d, delay: on && !quick ? 0.35 : 0 });
-      if (on && !quick) gsap.fromTo(t.rotation, { y: 0 }, { y: Math.PI * 2, duration: 0.9, ease: 'power3.inOut' });
-      t.userData.on = on;
-    };
-    s.enter = () => tiles.forEach((t) => set(t, false, true));
-    s.step = (k) => {
-      if (!tiles[k]) return;
-      sfx.click(true);
-      set(tiles[k], true);
-    };
-    s.update = (t) => {
-      tiles.forEach((tile, k) => (tile.position.z = Math.sin(t * 0.9 + k) * 0.3));
-      g.rotation.y = Math.sin(t * 0.3) * 0.15;
-    };
-  });
-}
-
-// ── 3 · audience: phones orbiting the QR code ───────────────
+// ── 4 · audience: the QR code stands in the world, phones gather round ─
 function audience(i) {
   return station(i, (s, g) => {
+    // the card itself is a real DOM element (built in panels.js) placed in 3D;
+    // the cursor tilts the view less here, so the code stays easy to scan
+    s.cam.parallax = 0.5;
+    const CARD_Y = 0.9;
+    s.mountCard = (el) => {
+      const obj = new CSS3DObject(el);
+      obj.position.set(0, CARD_Y, 0);
+      obj.scale.setScalar(0.015);
+      g.add(obj);
+      s.card = el;
+    };
+    // soft light plate behind the card
+    const halo = new THREE.Mesh(new THREE.PlaneGeometry(8.2, 9.2), basic(COLORS.safe, 0.07, { depthWrite: false }));
+    halo.position.set(0, CARD_Y, -0.8);
+    const haloFrame = rectFrame(8.2, 9.2, 0.05, basic(COLORS.safe, 0.45));
+    haloFrame.position.copy(halo.position);
+    g.add(halo, haloFrame);
+
+    // phones gather in a ring on the ground below the card
+    const BASE_Y = -5.9;
     const orbit = new THREE.Group();
+    orbit.position.y = BASE_Y;
     g.add(orbit);
-    const PHONES = 12;
+    const PHONES = 10;
     const phoneMat = basic(COLORS.safe, 0.85);
+    const phones = [];
     for (let k = 0; k < PHONES; k++) {
       const p = new THREE.Group();
-      p.add(rectFrame(1.3, 2.5, 0.06, phoneMat));
-      const ring = new THREE.Mesh(new THREE.RingGeometry(0.28, 0.34, 32), basic(k % 3 ? COLORS.safe : COLORS.warn, 0.9));
-      ring.position.y = 0.2;
+      p.add(rectFrame(0.95, 1.7, 0.05, phoneMat));
+      const ring = new THREE.Mesh(new THREE.RingGeometry(0.24, 0.3, 32), basic(k % 3 ? COLORS.safe : COLORS.warn, 0.9));
+      ring.position.y = 0.15;
       p.add(ring);
       const a = (k / PHONES) * Math.PI * 2;
-      p.position.set(Math.cos(a) * 7.2, Math.sin(a * 2) * 0.6, Math.sin(a) * 7.2);
+      p.position.set(Math.cos(a) * 8.5, 0, Math.sin(a) * 3.2);
       orbit.add(p);
+      phones.push(p);
     }
-    orbit.rotation.x = 0.28;
-    s.update = (t) => {
-      orbit.rotation.y = t * 0.12;
-      orbit.children.forEach((p) => p.lookAt(s.cam.pos));
-    };
-  });
-}
-
-// ── 4 · Chromium: browsers converge into one engine ─────────
-function chromium(i) {
-  return station(i, (s, g) => {
-    const coreMat = basic(COLORS.safe, 1);
-    const core = new THREE.Mesh(new THREE.IcosahedronGeometry(1.9, 1), basic(COLORS.safe, 0.5, { wireframe: true }));
-    const inner = new THREE.Mesh(new THREE.SphereGeometry(1.1, 32, 16), coreMat);
-    g.add(core, inner);
-    const coreLabel = s.addLabel(label('Chromium', 'big'));
-    coreLabel.position.set(0, -2.9, 0);
-    g.add(coreLabel);
-
-    const names = ['Chrome', 'Edge', 'Brave', 'Opera', 'Vivaldi', 'Samsung Internet'];
-    const nodes = names.map((n, k) => {
-      const node = new THREE.Group();
-      const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.42, 24, 12), basic(COLORS.white, 1));
-      node.add(sphere);
-      const l = s.addLabel(label(n, 'hidden'));
-      l.position.set(0, -0.95, 0);
-      node.add(l);
-      node.userData.label = l;
-      const a = (k / names.length) * Math.PI * 2 + 0.3;
-      node.userData.home = new THREE.Vector3(Math.cos(a) * 6.2, Math.sin(a) * 4.4, 0);
-      node.userData.far = new THREE.Vector3(Math.cos(a) * 15 + rand(-2, 2), Math.sin(a) * 9 + rand(-2, 2), rand(-6, 3));
-      node.position.copy(node.userData.far);
-      g.add(node);
-      return node;
+    const floorRing = new THREE.Mesh(new THREE.RingGeometry(8.4, 8.55, 96), basic(COLORS.safe, 0.35, { side: THREE.DoubleSide }));
+    floorRing.rotation.x = -Math.PI / 2;
+    floorRing.scale.y = 3.2 / 8.5;
+    floorRing.position.y = BASE_Y - 1.1;
+    g.add(floorRing);
+    // the test travels from the code down to every phone
+    const tmp = new THREE.Vector3();
+    const beams = stream({
+      count: 46, color: COLORS.safe, size: 0.26, speed: 0.55, curve: 0.6,
+      from: () => new THREE.Vector3(rand(-3, 3), CARD_Y - 4.4, 0.2),
+      to: () => phones[Math.floor(rand(0, PHONES))].getWorldPosition(tmp).clone().sub(g.position).divide(g.scale),
     });
-
-    const beamMat = new THREE.LineBasicMaterial({ color: COLORS.safe, transparent: true, opacity: 0 });
-    const beamGeo = new THREE.BufferGeometry();
-    beamGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(names.length * 6), 3));
-    const beams = new THREE.LineSegments(beamGeo, beamMat);
     g.add(beams);
 
-    const crack = new THREE.Mesh(new THREE.TorusGeometry(2.6, 0.04, 8, 96), basic(COLORS.threat, 0));
-    g.add(crack);
-
-    let broken = false;
-    const reset = () => {
-      broken = false;
-      gsap.killTweensOf(crack.scale);
-      nodes.forEach((n) => {
-        n.position.copy(n.userData.far);
-        n.userData.label.element.classList.add('hidden');
-      });
-      beamMat.opacity = 0;
-      beamMat.color.set(COLORS.safe);
-      coreMat.color.set(COLORS.safe);
-      core.material.color.set(COLORS.safe);
-      crack.material.opacity = 0;
+    s.enter = () => {
+      s.card?.classList.add('on');
+      beams.material.opacity = 0;
+      fade(beams.material, 0.8, 0.8, 1);
     };
-    s.enter = reset;
-    s.step = (k) => {
-      if (k === 0) {
-        nodes.forEach((n, j) =>
-          gsap.to(n.position, { ...n.userData.home, duration: 1.4, delay: j * 0.07, ease: 'power3.inOut' }));
-        fade(beamMat, 0.6, 0.8, 1.1);
-        setTimeout(() => nodes.forEach((n) => n.userData.label.element.classList.remove('hidden')), 1200);
-        sfx.whoosh(1.2);
-      }
-      if (k === 1) {
-        sfx.alarm();
-        const red = new THREE.Color(COLORS.threat);
-        [coreMat.color, core.material.color, beamMat.color].forEach((c) =>
-          gsap.to(c, { r: red.r, g: red.g, b: red.b, duration: 0.6 }));
-        broken = true;
-        gsap.fromTo(crack.scale, { x: 0.6, y: 0.6, z: 0.6 }, { x: 1.4, y: 1.4, z: 1.4, duration: 1.4, repeat: -1, ease: 'power1.out' });
-      }
+    s.leave = () => s.card?.classList.remove('on');
+    s.update = (t, dt) => {
+      orbit.rotation.y = t * 0.1;
+      phones.forEach((p) => p.lookAt(s.cam.pos));
+      beams.userData.update(dt);
+      halo.material.opacity = 0.06 + Math.sin(t * 1.4) * 0.02;
     };
-    s.update = (t) => {
-      core.rotation.set(t * 0.2, t * 0.3, 0);
-      inner.scale.setScalar(1 + Math.sin(t * 2.2) * 0.05);
-      const arr = beamGeo.attributes.position.array;
-      nodes.forEach((n, k) => {
-        n.position.z += Math.sin(t * 0.8 + k) * 0.003;
-        arr.set([0, 0, 0, n.position.x, n.position.y, n.position.z], k * 6);
-      });
-      beamGeo.attributes.position.needsUpdate = true;
-      crack.material.opacity = broken ? Math.max(0, (0.9 * (1.4 - crack.scale.x)) / 0.8) : 0;
-    };
-  });
+  }, { lookOffset: new THREE.Vector3(0, -1, 0), camOffset: new THREE.Vector3(0, 0, 22) });
 }
 
-// ── 5 · threats attacking a browser ─────────────────────────
+// ── 3 · threats attacking a browser ─────────────────────────
 function threats(i) {
   return station(i, (s, g) => {
     const win = browserWindow(7, 4.6, COLORS.safe);
@@ -610,135 +529,66 @@ function threats(i) {
   });
 }
 
-// ── 6 · antivirus / VPN / incognito miss the browser ───────
-function gaps(i) {
-  return station(i, (s, g) => {
-    const pedestals = [];
-    const X = [-6.5, 0, 6.5];
-
-    // Antivirus: a watchtower guarding the disk
-    {
-      const p = new THREE.Group();
-      const mat = basic(COLORS.safe, 1);
-      const disk = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 0.5, 40, 1, true), basic(COLORS.safe, 0.5, { wireframe: true }));
-      disk.position.y = -2.8;
-      const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.5, 4, 8), basic(COLORS.safe, 0.6, { wireframe: true }));
-      tower.position.y = -1;
-      const top = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.6, 1.1), mat);
-      top.position.y = 1.2;
-      const cone = new THREE.Mesh(new THREE.ConeGeometry(1.1, 4, 24, 1, true), basic(COLORS.safe, 0.06, { side: THREE.DoubleSide, depthWrite: false }));
-      const beamPivot = new THREE.Group();
-      beamPivot.position.y = 1.2;
-      cone.position.set(0, -2, 0);
-      const tilt = new THREE.Group();
-      tilt.rotation.z = 0.3;
-      tilt.add(cone);
-      beamPivot.add(tilt);
-      p.add(disk, tower, top, beamPivot);
-      p.userData.spin = beamPivot;
-      pedestals.push(p);
-    }
-    // VPN: an encrypted tunnel with a leak
-    {
-      const p = new THREE.Group();
-      const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 5, 12, 4, true), basic(COLORS.safe, 0.22, { wireframe: true }));
-      tube.rotation.z = Math.PI / 2;
-      tube.position.y = -1;
-      p.add(tube);
-      const inside = stream({
-        count: 30, color: COLORS.safe, size: 0.3, speed: 0.6,
-        from: () => new THREE.Vector3(-2.5, -1 + rand(-0.5, 0.5), rand(-0.5, 0.5)),
-        to: () => new THREE.Vector3(2.5, -1 + rand(-0.5, 0.5), rand(-0.5, 0.5)),
-      });
-      const leak = stream({
-        count: 14, color: COLORS.threat, size: 0.38, speed: 0.45,
-        from: () => new THREE.Vector3(rand(-0.3, 0.3), -0.2, 0),
-        to: () => new THREE.Vector3(rand(-1.5, 1.5), 3.4, rand(-0.5, 0.5)),
-      });
-      p.add(inside, leak);
-      p.userData.streams = [inside, leak];
-      pedestals.push(p);
-    }
-    // Incognito: a dark window — the fingerprint still shows
-    {
-      const p = new THREE.Group();
-      const win = browserWindow(4.2, 3, COLORS.dim, { rows: false });
-      win.position.y = -0.6;
-      p.add(win);
-      const hat = new THREE.Group();
-      const brim = new THREE.Mesh(new THREE.TorusGeometry(0.9, 0.05, 6, 40), basic(COLORS.white, 0.9));
-      brim.rotation.x = Math.PI / 2;
-      const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.6, 0.6, 20, 1, true), basic(COLORS.white, 0.6, { wireframe: true }));
-      crown.position.y = 0.3;
-      hat.add(brim, crown);
-      hat.position.set(0, 1.6, 0);
-      p.add(hat);
-      for (let r = 0; r < 4; r++) {
-        const ring = new THREE.Mesh(new THREE.RingGeometry(0.2 + r * 0.22, 0.25 + r * 0.22, 40), basic(COLORS.threat, 0.9));
-        ring.position.set(0, -0.9, 0.05);
-        p.add(ring);
-      }
-      pedestals.push(p);
-    }
-
-    pedestals.forEach((p, k) => {
-      p.position.x = X[k];
-      p.scale.setScalar(0.001);
-      g.add(p);
-    });
-
-    // attacks flowing across at browser level — above all three defences
-    const flow = stream({
-      count: 40, color: COLORS.threat, size: 0.34, speed: 0.22,
-      from: () => new THREE.Vector3(-13, rand(3.2, 5), rand(-1, 1)),
-      to: () => new THREE.Vector3(13, rand(3.2, 5), rand(-1, 1)),
-    });
-    g.add(flow);
-    const browserLevel = s.addLabel(label('browser level — where attacks happen', 'threat small'));
-    browserLevel.position.set(0, 6, 0);
-    g.add(browserLevel);
-
-    s.enter = () => {
-      pedestals.forEach((p) => p.scale.setScalar(0.001));
-      flow.material.opacity = 0;
-      pedestals[1].userData.streams.forEach((st) => (st.material.opacity = 0));
-      fade(flow.material, 0.9, 1, 0.6);
-    };
-    s.step = (k) => {
-      const p = pedestals[k];
-      if (!p) return;
-      sfx.blip(520 + k * 120);
-      gsap.to(p.scale, { x: 1, y: 1, z: 1, duration: 0.9, ease: 'back.out(1.6)' });
-      if (k === 1) p.userData.streams.forEach((st, j) => fade(st.material, 0.95, 0.6, 0.4 + j * 0.6));
-    };
-    s.update = (t, dt) => {
-      flow.userData.update(dt);
-      pedestals[0].userData.spin.rotation.y = t * 1.4;
-      pedestals[1].userData.streams.forEach((st) => st.userData.update(dt));
-      pedestals.forEach((p, k) => (p.rotation.y = Math.sin(t * 0.5 + k) * 0.25));
-    };
-  });
-}
-
-// ── 7 · decision matrix backdrop ────────────────────────────
-function matrixBackdrop(i) {
+// ── 7 · compare & measure: score cubes, then two fingerprints ─
+function compare(i) {
   return station(i, (s, g) => {
     const cubes = [];
-    for (let k = 0; k < 22; k++) {
+    for (let k = 0; k < 20; k++) {
       const c = new THREE.Mesh(
         new THREE.BoxGeometry(1, 1, 1),
         basic(k % 5 === 0 ? COLORS.safe : COLORS.dim, k % 5 === 0 ? 0.5 : 0.35, { wireframe: true }),
       );
-      c.position.set(rand(-22, 22), rand(-9, 9), rand(-18, -6));
-      c.scale.setScalar(rand(0.6, 2.4));
+      c.position.set(rand(-16, 16), rand(-8, 9), rand(-18, -6));
+      c.scale.setScalar(rand(0.6, 2.2));
       c.userData.spin = rand(0.1, 0.4);
+      c.userData.base = c.material.opacity;
       g.add(c);
       cubes.push(c);
     }
-    s.update = (t) => cubes.forEach((c, k) => {
-      c.rotation.set(t * c.userData.spin, t * c.userData.spin * 0.7, 0);
-      c.position.y += Math.sin(t * 0.6 + k) * 0.003;
-    });
+
+    // second beat: the measured results — one fingerprint stays, one keeps changing
+    const make = (x, color) => {
+      const fp = makeFingerprint({ color, ridges: 18, spacing: 0.17 });
+      fp.group.position.set(x, 1.5, -6);
+      fp.group.scale.setScalar(1.15);
+      fp.group.visible = false;
+      g.add(fp.group);
+      return fp;
+    };
+    const unique = make(-12, COLORS.threat);
+    const random = make(12, COLORS.safe);
+    let jitterT = 0;
+
+    const showCubes = (on, quick) =>
+      cubes.forEach((c) => gsap.to(c.material, { opacity: on ? c.userData.base : 0.06, duration: quick ? 0 : 0.8 }));
+    s.enter = () => {
+      unique.group.visible = random.group.visible = false;
+      showCubes(true, true);
+    };
+    s.beat = (n, quick) => {
+      if (n !== 1) return;
+      showCubes(false, quick);
+      unique.group.visible = random.group.visible = true;
+      unique.draw(quick ? 0 : 0.3);
+      random.draw(quick ? 0 : 0.6);
+    };
+    s.update = (t, dt) => {
+      cubes.forEach((c, k) => {
+        c.rotation.set(t * c.userData.spin, t * c.userData.spin * 0.7, 0);
+        c.position.y += Math.sin(t * 0.6 + k) * 0.003;
+      });
+      unique.group.rotation.y = Math.sin(t * 0.4) * 0.25;
+      // the randomized one never holds still: ridges re-shuffle every beat
+      jitterT += dt;
+      if (jitterT > 0.45) {
+        jitterT = 0;
+        random.lines.forEach((l) => {
+          l.rotation.z = rand(-0.3, 0.3);
+          l.scale.setScalar(rand(0.92, 1.08));
+        });
+      }
+      random.group.rotation.y = Math.sin(t * 0.4 + 1) * 0.25;
+    };
   });
 }
 
@@ -838,8 +688,8 @@ function bouncingAttacks(R, N, far, onHit) {
   };
 }
 
-// ── 8 · Heros Shell: the shield goes up ─────────────────────
-function heros(i) {
+// ── 5 · Heros Shell: the shield goes up, then its controls ─────────────────────
+function heros(i, controls) {
   return station(i, (s, g) => {
     const win = browserWindow(6.6, 4.2, COLORS.safe);
     g.add(win);
@@ -859,7 +709,55 @@ function heros(i) {
     const attacks = bouncingAttacks(R, 70, 22, shield.hit);
     g.add(attacks.points);
 
+    // second beat: the control domains, each wired to the browser
+    const corners = [[-1, 1], [1, 1], [-1, -1], [1, -1]];
+    const domains = controls.domains.map((d, k) => {
+      const [sx, sy] = corners[k];
+      const n = new THREE.Group();
+      n.position.set(sx * 4.6, sy * 3.4, 1.2);
+      const m = new THREE.Mesh(new THREE.OctahedronGeometry(0.55), basic(COLORS.dim, 1));
+      n.add(m);
+      const l = s.addLabel(label(d.name, 'small hidden'));
+      l.position.set(0, sy > 0 ? 1.05 : -1.05, 0);
+      n.add(l);
+      const corner = new THREE.Vector3(sx * 3.3, sy * 2.1, 0);
+      const wire = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([corner, n.position.clone()]),
+        new THREE.LineBasicMaterial({ color: COLORS.safe, transparent: true, opacity: 0 }),
+      );
+      n.scale.setScalar(0.001);
+      g.add(n, wire);
+      return { n, m, l, wire, level: 0 };
+    });
+    s.beatPoses = [null, { pos: new THREE.Vector3(2, 1.2, 28), look: new THREE.Vector3(0, 0.2, 0) }];
+    s.beat = (n, quick) => {
+      if (n !== 1) return;
+      domains.forEach((d, k) => {
+        gsap.to(d.n.scale, { x: 1, y: 1, z: 1, duration: quick ? 0 : 0.8, delay: quick ? 0 : 0.3 + k * 0.1, ease: 'back.out(2)' });
+        gsap.to(d.wire.material, { opacity: 0.25, duration: quick ? 0 : 0.6, delay: quick ? 0 : 0.5 });
+        d.l.element.classList.remove('hidden');
+      });
+      gsap.to(attacks.mat, { opacity: 0.45, duration: quick ? 0 : 0.8 });
+    };
+    // a switch on the panel lights its domain; the shield grows brighter with every control
+    s.setDomain = (k, ratio) => {
+      const d = domains[k];
+      if (!d) return;
+      d.level = ratio;
+      const c = new THREE.Color(COLORS.dim).lerp(new THREE.Color(COLORS.safe), ratio);
+      gsap.to(d.m.material.color, { r: c.r, g: c.g, b: c.b, duration: 0.3 });
+      gsap.to(d.wire.material, { opacity: 0.25 + ratio * 0.7, duration: 0.3 });
+      gsap.fromTo(d.m.scale, { x: 1.5, y: 1.5, z: 1.5 }, { x: 1, y: 1, z: 1, duration: 0.5 });
+      const all = domains.reduce((a, x) => a + x.level, 0) / domains.length;
+      gsap.to(shield.lattice.material, { opacity: 0.4 + all * 0.3, duration: 0.4 });
+    };
+
     s.enter = () => {
+      domains.forEach((d) => {
+        d.n.scale.setScalar(0.001);
+        d.wire.material.opacity = 0;
+        d.l.element.classList.add('hidden');
+      });
       shield.group.scale.setScalar(0.001);
       attacks.mat.opacity = 0;
       zones.forEach((z) => (z.material.opacity = 0));
@@ -884,148 +782,14 @@ function heros(i) {
     s.update = (t, dt) => {
       shield.lattice.rotation.y = t * 0.08;
       zones.forEach((z, k) => (z.rotation.z = t * (0.1 + k * 0.05) * (k % 2 ? -1 : 1)));
+      domains.forEach((d, k) => (d.m.rotation.y = t * (0.5 + d.level * 2) + k));
       attacks.update(dt, shield.group.scale.x > 0.9);
       shield.update();
     };
   }, { camOffset: new THREE.Vector3(0, 1.5, 27) });
 }
 
-// ── 9 · local-first vs cloud ────────────────────────────────
-function local(i) {
-  return station(i, (s, g) => {
-    // left: cloud model
-    const left = new THREE.Group();
-    left.position.x = -4.6;
-    const cloud = new THREE.Group();
-    [[0, 0, 1.3], [-1.3, -0.3, 0.95], [1.3, -0.3, 1], [-0.6, 0.6, 0.9], [0.7, 0.55, 0.85]].forEach(([x, y, r]) => {
-      const m = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 10), basic(COLORS.threat, 0.35, { wireframe: true }));
-      m.position.set(x, y, 0);
-      cloud.add(m);
-    });
-    cloud.position.y = 4.4;
-    const laptop = browserWindow(3.4, 2.3, COLORS.dim, { rows: false });
-    laptop.position.y = -2.6;
-    left.add(cloud, laptop);
-    const up = stream({
-      count: 22, color: COLORS.threat, size: 0.32, speed: 0.5,
-      from: () => new THREE.Vector3(rand(-0.6, -0.2), -1.4, 0),
-      to: () => new THREE.Vector3(rand(-0.8, -0.2), 3.4, 0),
-    });
-    const down = stream({
-      count: 14, color: COLORS.warn, size: 0.28, speed: 0.4,
-      from: () => new THREE.Vector3(rand(0.2, 0.8), 3.4, 0),
-      to: () => new THREE.Vector3(rand(0.2, 0.6), -1.4, 0),
-    });
-    left.add(up, down);
-    const lc = s.addLabel(label('Cloud', 'threat small'));
-    lc.position.set(0, 6.4, 0);
-    left.add(lc);
-    g.add(left);
-
-    // divider
-    const div = new THREE.Mesh(new THREE.PlaneGeometry(0.03, 13), basic(COLORS.dim, 0.7));
-    g.add(div);
-
-    // right: everything stays inside
-    const right = new THREE.Group();
-    right.position.x = 4.6;
-    const vaultEdges = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(5, 5, 5)), new THREE.LineBasicMaterial({ color: COLORS.safe }));
-    const device = browserWindow(3, 2, COLORS.safe, { rows: false });
-    right.add(vaultEdges, device);
-    const N = 30;
-    const pos = new Float32Array(N * 3);
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const orbit = new THREE.Points(geo, new THREE.PointsMaterial({ color: COLORS.safe, size: 0.3, map: dotTexture(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
-    right.add(orbit);
-    const seeds = Array.from({ length: N }, () => ({ a: rand(0, Math.PI * 2), r: rand(1.4, 2.2), y: rand(-1.8, 1.8), s: rand(0.4, 1.1) }));
-    const lr = s.addLabel(label('Your device', 'safe small'));
-    lr.position.set(0, -3.4, 0);
-    right.add(lr);
-    g.add(right);
-
-    s.enter = () => {
-      up.material.opacity = 0;
-      down.material.opacity = 0;
-      fade(up.material, 0.95, 0.6, 0.4);
-      fade(down.material, 0.9, 0.6, 1.2);
-    };
-    s.update = (t, dt) => {
-      up.userData.update(dt);
-      down.userData.update(dt);
-      cloud.rotation.y = t * 0.2;
-      vaultEdges.rotation.y = t * 0.15;
-      seeds.forEach((q, k) => {
-        const a = q.a + t * q.s;
-        pos[k * 3] = Math.cos(a) * q.r;
-        pos[k * 3 + 1] = q.y + Math.sin(t + k) * 0.2;
-        pos[k * 3 + 2] = Math.sin(a) * q.r;
-      });
-      geo.attributes.position.needsUpdate = true;
-    };
-  });
-}
-
-// ── 10 · Nevai Hub ──────────────────────────────────────────
-function hub(i, hubContent) {
-  return station(i, (s, g) => {
-    const core = new THREE.Mesh(new THREE.SphereGeometry(1.4, 32, 16), basic(COLORS.safe, 1));
-    const shell = new THREE.Mesh(new THREE.IcosahedronGeometry(2.1, 1), basic(COLORS.safe, 0.35, { wireframe: true }));
-    g.add(core, shell);
-    const cl = s.addLabel(label('Nevai Hub', 'big'));
-    cl.position.set(0, -2.8, 0);
-    g.add(cl);
-
-    const domainNodes = hubContent.domains.map((d, k) => {
-      const a = (k / hubContent.domains.length) * Math.PI * 2 + Math.PI / 4;
-      const n = new THREE.Group();
-      n.position.set(Math.cos(a) * 5.4, Math.sin(a) * 4.2, 0);
-      const m = new THREE.Mesh(new THREE.OctahedronGeometry(0.6), basic(COLORS.dim, 1));
-      n.add(m);
-      const l = s.addLabel(label(d.name, 'small'));
-      l.position.set(0, -1.1, 0);
-      n.add(l);
-      g.add(n);
-      const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1, 6), basic(COLORS.safe, 0.15));
-      const len = n.position.length();
-      beam.scale.y = len;
-      beam.position.copy(n.position).multiplyScalar(0.5);
-      beam.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), n.position.clone().normalize());
-      g.add(beam);
-      return { n, m, beam, level: 0 };
-    });
-
-    const modules = hubContent.modules.map((mod, k) => {
-      const n = new THREE.Group();
-      n.position.set([-6.5, 0, 6.5][k], [6, 7.6, 6][k], -1);
-      const m = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), basic(COLORS.white, 0.9, { wireframe: true }));
-      n.add(m);
-      const l = s.addLabel(label(`<b>${mod.name}</b><br><span>${mod.desc}</span>`, 'small module'));
-      l.position.set(0, 1.0, 0);
-      n.add(l);
-      g.add(n);
-      return { n, m };
-    });
-
-    s.setDomain = (k, ratio) => {
-      const d = domainNodes[k];
-      if (!d) return;
-      d.level = ratio;
-      const c = new THREE.Color(COLORS.dim).lerp(new THREE.Color(COLORS.safe), ratio);
-      gsap.to(d.m.material.color, { r: c.r, g: c.g, b: c.b, duration: 0.3 });
-      gsap.to(d.beam.material, { opacity: 0.15 + ratio * 0.8, duration: 0.3 });
-      gsap.fromTo(d.m.scale, { x: 1.5, y: 1.5, z: 1.5 }, { x: 1, y: 1, z: 1, duration: 0.5 });
-    };
-    s.update = (t) => {
-      shell.rotation.set(t * 0.2, t * 0.25, 0);
-      core.scale.setScalar(1 + Math.sin(t * 2) * 0.04);
-      domainNodes.forEach((d, k) => (d.m.rotation.y = t * (0.5 + d.level * 2) + k));
-      modules.forEach((m, k) => (m.m.rotation.set(t * 0.4 + k, t * 0.5, 0)));
-    };
-  }, { lookOffset: new THREE.Vector3(0, 1.4, 0), camOffset: new THREE.Vector3(0, 2.2, 24) });
-}
-
-// ── 11 · demo: Chrome alone vs Chrome + Heros ───────────────
+// ── 6 · demo: Chrome alone vs Chrome + Heros ───────────────
 function demo(i) {
   return station(i, (s, g) => {
     const a = browserWindow(6, 4, COLORS.threat);
@@ -1057,7 +821,7 @@ function demo(i) {
   });
 }
 
-// ── 12 · outro: every browser safe under one shield ────────
+// ── 8 · outro: every browser safe under one shield ────────
 function outro(i) {
   return station(i, (s, g) => {
     const R = 15;
@@ -1097,40 +861,65 @@ function outro(i) {
 }
 
 // A glowing road through every station — the path of the journey.
+// The part already travelled glows brighter, and a light runs ahead of the camera.
 function road(list) {
   const pts = list.map((s) => s.anchor.clone().add(new THREE.Vector3(0, -6.2, 0)));
   pts.unshift(pts[0].clone().add(new THREE.Vector3(-40, 0, 6)));
   pts.push(pts[pts.length - 1].clone().add(new THREE.Vector3(40, 0, 6)));
   const curve = new THREE.CatmullRomCurve3(pts);
   const g = new THREE.Group();
-  g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 600, 0.09, 6), basic(COLORS.safe, 0.85)));
-  g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 600, 0.6, 8), basic(COLORS.safeDeep, 0.12, { depthWrite: false })));
+  const SEG = 600;
+  const RADIAL = 6;
+  g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, SEG, 0.07, RADIAL), basic(COLORS.safe, 0.35)));
+  g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, SEG, 0.6, 8), basic(COLORS.safeDeep, 0.08, { depthWrite: false })));
+  const lit = new THREE.Mesh(new THREE.TubeGeometry(curve, SEG, 0.12, RADIAL), basic(COLORS.safe, 1));
+  g.add(lit);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 8), basic(COLORS.safe, 0.9));
+  g.add(head);
   // a node under every station
-  list.forEach((s) => {
-    const ring = new THREE.Mesh(new THREE.RingGeometry(2.2, 2.4, 48), basic(COLORS.safe, 0.7, { side: THREE.DoubleSide }));
+  const rings = list.map((s) => {
+    const ring = new THREE.Mesh(new THREE.RingGeometry(2.2, 2.4, 48), basic(COLORS.safe, 0.35, { side: THREE.DoubleSide }));
     ring.rotation.x = -Math.PI / 2;
     ring.position.copy(s.anchor).add(new THREE.Vector3(0, -6.2, 0));
     g.add(ring);
+    return ring;
   });
-  return g;
+
+  // curve parameter of station k (points are spread evenly along the curve's parameter)
+  const at = (k) => (k + 1) / (pts.length - 1);
+  const state = { u: at(0) };
+  const apply = () => {
+    lit.geometry.setDrawRange(0, Math.floor(state.u * SEG) * RADIAL * 6);
+    head.position.copy(curve.getPoint(state.u));
+  };
+  apply();
+  return {
+    group: g,
+    travel(from, to, duration) {
+      gsap.killTweensOf(state);
+      gsap.to(state, { u: at(to), duration, ease: 'power2.inOut', onUpdate: apply });
+      rings.forEach((r, k) => gsap.to(r.material, { opacity: k === to ? 0.95 : k < to ? 0.6 : 0.35, duration: duration || 0.01 }));
+    },
+  };
 }
 
 export function createStations(world, content) {
   const builders = {
-    intro, society, fingerprint, audience, chromium, threats, gaps,
-    matrix: matrixBackdrop, results, heros, local, takeaways,
-    hub: (k) => hub(k, content.hub),
-    demo,
-    outro,
+    intro, problem, threats, audience,
+    heros: (k) => heros(k, content.controls),
+    demo, compare, outro,
   };
   const list = content.stations.map((c, k) => {
     const s = builders[c.id](k);
     s.id = c.id;
     s.cam.frame = c.layout === 'center' ? 'center' : 'left';
+    s.beatCams = (s.beatPoses || []).map((p) => p && camAt(s, p.pos, p.look));
     world.scene.add(s.group);
     world.onFrame((t, dt) => s.update(t, dt));
     return s;
   });
-  world.scene.add(road(list));
+  const path = road(list);
+  world.scene.add(path.group);
+  list.travel = path.travel;
   return list;
 }
