@@ -17,8 +17,18 @@ export const COLORS = {
   white: 0xe8f1ff,
 };
 
-// How far the subject is pushed right when text sits on the left.
-const FRAME_OFFSET = { left: -9, center: 0 };
+// Lens shift (film offset, mm) that centres the subject in the free space
+// right of the text column. Mirrors .panel.left in styles.css:
+// left 7vw, width min(640px, 40vw).
+function frameOffset(frame) {
+  if (frame !== 'left') return 0;
+  const w = window.innerWidth;
+  const aspect = w / window.innerHeight;
+  const textRight = (0.07 * w + Math.min(640, 0.4 * w)) / w;
+  const target = (textRight + 1) / 2; // middle of the free area, 0..1
+  // the visible film width is filmGauge (35mm) * 2*tan(fov/2) * aspect, fov 45°
+  return -(target - 0.5) * 35 * 0.8284 * aspect;
+}
 
 export function createWorld(canvas, labelHost) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -56,6 +66,7 @@ export function createWorld(canvas, labelHost) {
     pos: camera.position.clone(),
     look: new THREE.Vector3(0, 0, 0),
     film: 0,
+    frame: 'center',
   };
   const mouse = { x: 0, y: 0, sx: 0, sy: 0 };
   window.addEventListener('pointermove', (e) => {
@@ -67,7 +78,8 @@ export function createWorld(canvas, labelHost) {
   function flyTo({ pos, look, frame = 'left' }, { duration = 1.8, instant = false } = {}) {
     if (flight) flight.kill();
     const from = { pos: rig.pos.clone(), look: rig.look.clone(), film: rig.film };
-    const toFilm = FRAME_OFFSET[frame] ?? 0;
+    const toFilm = frameOffset(frame);
+    rig.frame = frame;
     if (instant) {
       rig.pos.copy(pos);
       rig.look.copy(look);
@@ -104,6 +116,7 @@ export function createWorld(canvas, labelHost) {
     renderer.setSize(w, h);
     composer.setSize(w, h);
     labels.setSize(w, h);
+    if (!flight || !flight.isActive()) rig.film = frameOffset(rig.frame);
   }
   window.addEventListener('resize', resize);
 

@@ -98,7 +98,7 @@ export const stations = [
     id: 'matrix',
     layout: 'center',
     kicker: '03 · Compare alternatives',
-    title: 'Same criteria. Four options.',
+    title: 'Same criteria.<br>Four options.',
     sub: 'Click an option to score it.',
     footnote: '✓ protects  ·  ~ partly  ·  ✗ does not protect',
     notes:

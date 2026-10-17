@@ -377,7 +377,7 @@ function threats(i) {
     const win = browserWindow(8, 5.2, COLORS.safe);
     g.add(win);
     const spots = [
-      [-8.2, 4.4], [8.2, 4.4], [-8.2, -4], [8.2, -4],
+      [-6.6, 4.3], [6.6, 4.3], [-6.6, -3.9], [6.6, -3.9],
     ];
     const names = ['Tracker', 'Fingerprint', 'Cookie theft', 'WebRTC leak'];
     const items = spots.map(([x, y], k) => {
@@ -668,7 +668,7 @@ function heros(i) {
     g.add(shield.group);
 
     const zones = [0, 1, 2].map((k) => {
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(R + 0.9 + k * 0.9, 0.05, 8, 160), basic(COLORS.safe, 0));
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(R + 0.6 + k * 0.6, 0.05, 8, 160), basic(COLORS.safe, 0));
       ring.rotation.x = Math.PI / 2 - 0.25;
       g.add(ring);
       return ring;
@@ -708,7 +708,7 @@ function local(i) {
   return station(i, (s, g) => {
     // left: cloud model
     const left = new THREE.Group();
-    left.position.x = -5.5;
+    left.position.x = -4.6;
     const cloud = new THREE.Group();
     [[0, 0, 1.3], [-1.3, -0.3, 0.95], [1.3, -0.3, 1], [-0.6, 0.6, 0.9], [0.7, 0.55, 0.85]].forEach(([x, y, r]) => {
       const m = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 10), basic(COLORS.threat, 0.35, { wireframe: true }));
@@ -741,7 +741,7 @@ function local(i) {
 
     // right: everything stays inside
     const right = new THREE.Group();
-    right.position.x = 5.5;
+    right.position.x = 4.6;
     const vaultEdges = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(5, 5, 5)), new THREE.LineBasicMaterial({ color: COLORS.safe }));
     const device = browserWindow(3, 2, COLORS.safe, { rows: false });
     right.add(vaultEdges, device);
